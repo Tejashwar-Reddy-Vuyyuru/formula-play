@@ -1,7 +1,7 @@
 {
   "name": "Formula Play",
   "short_name": "Formula Play",
-  "description": "Turn drawings, sounds and short videos into formulas, and formulas back into drawings and sounds.",
+  "description": "Turn drawings and sounds into formulas, and formulas back into drawings and sounds.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
