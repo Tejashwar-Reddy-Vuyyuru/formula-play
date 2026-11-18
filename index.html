@@ -2613,10 +2613,16 @@ function g3Run(root,id){const G=G3[id],H=G.h||900,KEY='g3_'+id;
   // touch: taps, swipes and drags
   // games that prefer a sideways screen (Cue shot) switch to a wide canvas whenever the screen is wider than tall
   const LANDWH=G.landscape?[1540,760]:null;A.land=false;
-  const applyOrient=()=>{if(!LANDWH)return;const want=innerWidth>innerHeight;if(want===A.land)return;A.land=want;cv.width=want?LANDWH[0]:720;cv.height=want?LANDWH[1]:H;cv.classList.toggle('g3land',want);};applyOrient();
-  if(LANDWH){const onR=()=>{if(!cv.isConnected){removeEventListener('resize',onR);return;}applyOrient();};addEventListener('resize',onR);try{const lock=()=>(screen.orientation&&screen.orientation.lock)?screen.orientation.lock('landscape'):Promise.reject();lock().catch(()=>{goFull(true);const p=window.__fsP;if(p&&p.then)p.then(()=>lock().catch(()=>{}),()=>{});});}catch(e){}}
+  // no full screen (so the browser shows no pop-up). When the phone is upright the picture itself is turned a quarter, so the game is sideways either way.
+  const applyOrient=()=>{if(!LANDWH)return;if(!A.land){A.land=true;cv.width=LANDWH[0];cv.height=LANDWH[1];cv.classList.add('g3land');}
+    const sc=cv.parentNode;A.rot=innerWidth<=innerHeight;if(A.rot){const hd=document.querySelector('header'),hh=hd?hd.offsetHeight:60,aH=innerHeight-hh-10,aW=innerWidth-6,ar=LANDWH[0]/LANDWH[1],Lp=Math.floor(Math.min(aH,aW*ar)),Sp=Math.floor(Lp/ar);
+      sc.style.cssText='position:relative;flex:none;width:'+Sp+'px;height:'+Lp+'px;margin:0 auto;overflow:hidden;border-radius:14px';cv.style.cssText='position:absolute;max-width:none;max-height:none;margin:0;width:'+Lp+'px;height:'+Sp+'px;left:'+((Sp-Lp)/2)+'px;top:'+((Lp-Sp)/2)+'px;transform:rotate(90deg)';}
+    else{sc.style.cssText='';cv.style.cssText='';}};applyOrient();
+  if(LANDWH){const onR=()=>{if(!cv.isConnected){removeEventListener('resize',onR);return;}applyOrient();};addEventListener('resize',onR);
+    try{if(screen.orientation&&screen.orientation.lock){const r=screen.orientation.lock('landscape');if(r&&r.catch)r.catch(()=>{});}}catch(e){}
+    try{const g=JSON.parse(localStorage.getItem('fp-guides')||'{}');if(A.rot&&!g.turn){g.turn=1;localStorage.setItem('fp-guides',JSON.stringify(g));setTimeout(()=>{if(cv.isConnected&&A.rot)cheer('good','This game plays sideways','Turn your phone ↺','📱',{small:true,quiet:true});},500);}}catch(e){}}
   else{try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}catch(e){}}
-  let dn=null;const P=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];};
+  let dn=null;const P=e=>{const r=cv.getBoundingClientRect();if(A.rot)return [(e.clientY-r.top)*cv.width/r.height,(r.right-e.clientX)*cv.height/r.width];return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];};
   const W2=p=>(A.land&&game.toWorld)?game.toWorld(p[0],p[1]):p;
   cv.addEventListener('pointerdown',e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}const p=P(e);dn={x:p[0],y:p[1],t:performance.now(),sw:false};
     if(A.state==='ready'||((A.state==='over'||A.state==='won')&&A.overT>0.7)){if(A.state==='won'){A.state='play';A.fx.length=0;A.gen=(A.gen||0)+1;game=G.make(A);A.setScore(0);fit();}else start();dn.used=true;return;}
@@ -2996,7 +3002,7 @@ g3Def({id:'tiles',name:'Rising tiles',col:'#e879f9',h:1000,guide:'tap',tapOnDown
   icon(c,t,W,H,col){for(let i=0;i<4;i++){const y=((H+60)-((t*90+i*70)%(H+120)));const hu=280+i*30;c.fillStyle=`hsl(${hu},85%,62%)`;rrect(c,20+((i*3)%4)*75,y,66,56,10);c.fill();}c.strokeStyle='#fde047';c.lineWidth=2;c.beginPath();c.moveTo(0,60);c.lineTo(W,60);c.stroke();}});
 
 // ---------- 9. Cue shot: 8-ball against a computer opponent that gets better level by level
-g3Def({id:'pool',name:'Cue shot',col:'#22c55e',h:1220,landscape:true,guide:'drag',levels:true,guideText:'Drag to aim · pull the slider to shoot',line:'8-ball vs a computer player. Solids or stripes, then the black.',how:'Real 8-ball: the first ball you pot sets your group, solids (1–7) or stripes (9–15). Pot all of yours, then the black. Drag anywhere on the table to aim, and slide the FINE wheel on the right for tiny turns. To shoot, pull the cue in the POWER bar on the left down and let go. Push it back up to cancel. Fouls give your rival ball in hand.',
+g3Def({id:'pool',name:'Cue shot',col:'#22c55e',h:1220,landscape:true,guide:'drag',levels:true,guideText:'Drag to aim · pull the slider to shoot',line:'8-ball vs a computer player. Solids or stripes, then the black.',how:'Real 8-ball: the first ball you pot sets your group, solids (1–7) or stripes (9–15). Pot all of yours, then the black. Drag on the table to turn the cue; it keeps its angle when you lift your finger. Slide the FINE wheel on the right for tiny turns. To shoot, pull the cue in the POWER bar on the left down and let go. Push it back up to cancel. Fouls give your rival ball in hand.',
   make(A){const GEN=A.gen,L=70,R=650,T=130,B=1130,BR=21,PR=40,PX=394,DEC=90,DRAG=0.24,LV=A.level;const MID=(T+B)/2,pockets=[[L-6,T-6,50,L+14,T+14],[R+6,T-6,50,R-14,T+14],[L-10,MID,44,L+4,MID],[R+10,MID,44,R-4,MID],[L-6,B+6,50,L+14,B-14],[R+6,B+6,50,R-14,B-14]];
     // a ball is in when it reaches a pocket's mouth: near both rails at a corner, or at the rail by a side pocket
     const inMouth=(b,p)=>{if(Math.hypot(b.x-p[0],b.y-p[1])<p[2])return true;const nx=Math.min(b.x-L,R-b.x)<BR+(p[1]===MID?4:30);if(p[1]===MID)return nx&&Math.abs(b.y-MID)<36&&(p[0]<360)===(b.x<360);return nx&&Math.min(b.y-T,B-b.y)<BR+30&&(p[0]<360)===(b.x<360)&&(p[1]<MID)===(b.y<MID);};
@@ -3079,12 +3085,12 @@ g3Def({id:'pool',name:'Cue shot',col:'#22c55e',h:1220,landscape:true,guide:'drag
         if(onSlider(x,y,sx,sy)){S.sl=true;S.pow=sliderPow(y,sy);return;}
         if(onFine(x,y,sx,sy)){S.fine={y0:A.land?sy:y,a0:S.ang};return;}
         if(S.place&&Math.hypot(x-cue.x,y-cue.y)<BR+14){S.drag=true;return;}
-        S.turnAim=true;const rx=x-cue.x,ry=y-cue.y;if(Math.hypot(rx,ry)>BR*1.5)S.ang=Math.atan2(ry,rx);},
+        S.turnAim={a0:S.ang,t0:Math.atan2(y-cue.y,x-cue.x)};},
       move(x,y,sx,sy){if(S.drag){const nx=Math.max(L+BR,Math.min(R-BR,x)),ny=Math.max(T+BR,Math.min(B-BR,y));if(!balls.some(b=>b!==cue&&!b.in&&Math.hypot(b.x-nx,b.y-ny)<BR*2))cue.x=nx,cue.y=ny;return;}
         if(S.sl){S.pow=sliderPow(y,sy);return;}
         if(S.fine){S.ang=S.fine.a0+((A.land?sy:y)-S.fine.y0)*0.0005;return;}
-        if(S.turnAim){const rx=x-cue.x,ry=y-cue.y;if(Math.hypot(rx,ry)>BR*1.5)S.ang=Math.atan2(ry,rx);}},
-      up(){if(S.drag){S.drag=false;return;}S.turnAim=false;S.fine=null;if(S.sl){const p=S.pow;S.sl=false;S.pow=0;
+        if(S.turnAim){const rx=x-cue.x,ry=y-cue.y;if(Math.hypot(rx,ry)>BR){let d=Math.atan2(ry,rx)-S.turnAim.t0;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;S.ang=S.turnAim.a0+d;}}},
+      up(){if(S.drag){S.drag=false;return;}S.turnAim=null;S.fine=null;if(S.sl){const p=S.pow;S.sl=false;S.pow=0;
           if(p<0.06){say('No shot. Aim, then pull the cue in the power bar down and let go.');return;}shoot(Math.cos(S.ang),Math.sin(S.ang),Math.max(120,p*2400));}},
       update(dt){if(S.moving){const any=step(dt);if(!any){S.moving=false;endShot();}}if(myTurn()&&S.aimShot!==S.shots+'/'+S.turn){S.aimShot=S.shots+'/'+S.turn;autoAim();}if(S.bot)S.bot.t+=dt;S.bumps.forEach(b=>b.life-=dt*1.2);S.bumps=S.bumps.filter(b=>b.life>0);},
       draw(c){if(!A.land){c.fillStyle='#0b0f17';c.fillRect(0,0,720,A.H);}c.fillStyle='#3b2412';rrect(c,L-44,T-44,R-L+88,B-T+88,30);c.fill();const fg=c.createRadialGradient(360,(T+B)/2,100,360,(T+B)/2,620);{const pc=poolCloth();fg.addColorStop(0,pc[0]);fg.addColorStop(1,pc[1]);}c.fillStyle=fg;c.fillRect(L-14,T-14,R-L+28,B-T+28);
