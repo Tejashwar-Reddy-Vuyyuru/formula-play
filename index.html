@@ -4003,6 +4003,8 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
     else{i=+i;if(INVS.on)invOpen(false);$('lbar-t').textContent=ICO[i]+' '+LCATS[i][0];labCat(i);if(!LCATS[i][1].includes(LAB.e)){LAB.e=LCATS[i][1][0];LAB.F=null;LAB.sp=[];labChanged(true,true);}labShow();}scrollTo(0,0);};
   hub.querySelectorAll('.lhub-t').forEach(b=>b.addEventListener('click',()=>labOpenCat(b.dataset.c)));$('lall').addEventListener('click',()=>labHub());
   if(view==='lab')labHub();})();
+// the version number, at the bottom of the Menu, so it is easy to tell which update is installed
+(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 38';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
