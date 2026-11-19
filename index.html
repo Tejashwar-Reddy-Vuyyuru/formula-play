@@ -774,9 +774,8 @@ body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
       <label class="fld" for="fam1"><span>Or pick a famous tune: see its wave, its notes and its formula</span><select id="fam1"></select></label>
       <div><p class="small" style="margin-bottom:8px">Background noise filter</p><div class="subtabs" id="noiseseg" role="group" aria-label="Background noise filter"><button type="button" data-noise="standard" aria-pressed="true">Standard</button><button type="button" data-noise="strong" aria-pressed="false">Strong, for noisy places</button></div>
       <p class="small" style="margin-top:6px">Standard removes rumble, hum and hiss and ignores sounds near the background level. Strong also uses your phone's own noise reduction, which can soften steady whistles.</p></div>
-      <p class="note" id="micnote" hidden>The microphone is not available in this view. Open the app from its own web address to use it, or choose a sound file or a sample here.</p>
-      <p class="small">Or try a sound made by the app:</p>
-      <div class="chips"><button type="button" data-sample="guitar">Plucked string</button><button type="button" data-sample="glass">Tapped glass</button><button type="button" data-sample="whistle">Whistle</button></div>
+      <p class="note" id="micnote" hidden>The microphone is not available in this view. Open the app from its own web address to use it, or choose a sound file or a famous tune here.</p>
+      <div class="chips" hidden><button type="button" data-sample="guitar">Plucked string</button><button type="button" data-sample="glass">Tapped glass</button><button type="button" data-sample="whistle">Whistle</button></div>
       
     </section>
     <section class="card" id="live" hidden>
@@ -795,8 +794,8 @@ body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
       <div class="screen" style="box-shadow:none"><canvas id="bars" width="680" height="300" aria-label="Bar chart of the strength of each wave in the sound"></canvas></div>
       <p class="small" id="sexp"></p>
       <details><summary>Show as a table</summary><table id="stab"></table></details>
-      <label class="fld">Change the pitch before playing: <span id="shiftl">no change</span><input type="range" id="shift" min="-12" max="12" step="1" value="0"></label>
-      <div class="row"><button type="button" class="primary" id="splay">Play the formula</button><button type="button" id="sorig">Play the original</button></div>
+      <label class="fld" hidden>Change the pitch before playing: <span id="shiftl">no change</span><input type="range" id="shift" min="-12" max="12" step="1" value="0"></label>
+      <div class="row" hidden><button type="button" class="primary" id="splay">Play the formula</button><button type="button" id="sorig">Play the original</button></div>
     </section>
     <section class="card" id="sshare" hidden><h2>Send it</h2><p class="small">One tap sends a link. Your friend opens it and hears the sound rebuilt from its formula.</p>
       <div class="row"><button type="button" class="primary" data-copy="send">Send to a friend</button><button type="button" data-copy="code">Copy code</button><button type="button" data-copy="save">Save to my creations</button></div><p class="small" data-msg role="status"></p><textarea readonly hidden data-out aria-label="What to send"></textarea></section>
@@ -808,7 +807,7 @@ body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
     <section class="card" id="tres" hidden><h3 id="tname"></h3><div class="screen" style="box-shadow:none"><canvas id="troll" width="680" height="260" aria-label="The notes of the tune, left to right in time, higher notes drawn higher"></canvas></div>
       <p class="eq" id="tnotes"></p><p class="eq dim" id="tform"></p>
       <div class="stats"><div class="stat"><b id="tcount"></b><span>notes</span></div><div class="stat"><b id="tlen"></b><span>long</span></div></div>
-      <div class="row"><button type="button" class="primary" id="tplay">▶ Play the notes</button><button type="button" id="torig">Play the original</button></div></section>
+      <div class="row"><button type="button" class="primary" id="tplay">▶ Play the notes</button><button type="button" id="torig" hidden style="display:none">Play the original</button></div></section>
     <section class="card" id="ushare" hidden><h2>Send the tune</h2><p class="small">One tap sends a link. Your friend opens it and hears your tune played from its notes.</p>
       <div class="row"><button type="button" class="primary" data-copy="send">Send to a friend</button><button type="button" data-copy="code">Copy code</button><button type="button" data-copy="save">Save to my creations</button></div><p class="small" data-msg role="status"></p><textarea readonly hidden data-out aria-label="What to send"></textarea></section>
     </div>
@@ -1152,7 +1151,7 @@ function soundStop(keep){if(playing){const s=playing;playing=null;try{s.onended=
 function soundPause(){if(!playing||!PL||!actx)return false;PL.off+=actx.currentTime-PL.t0;PL.paused=true;soundStop(true);return true;}
 function soundResume(){if(!PL||!PL.paused)return;const P=PL;if(P.off>=P.x.length/P.sr-0.05)P.off=0;if(P.tune)playTune(P.x,P.sr,P.off);else play(P.x,P.sr,P.off);}
 function soundToggle(){if(playing&&PL){soundPause();return true;}if(PL&&PL.paused){soundResume();return true;}return false;}
-function play(x,sr,off){const c=ctxA();soundStop();const b=c.createBuffer(1,x.length,sr);b.getChannelData(0).set(x);const s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0,off||0);playing=s;PL={x,sr,off:off||0,t0:c.currentTime,tune:false,paused:false};
+function play(x,sr,off){const c=ctxA();soundStop();const b=c.createBuffer(1,x.length,sr);b.getChannelData(0).set(x);const s=c.createBufferSource();s.buffer=b;const sg=c.createGain(),sl=c.createBiquadFilter();sg.gain.value=0.5;sl.type='lowpass';sl.frequency.value=2400;sl.Q.value=0.3;s.connect(sl);sl.connect(sg);sg.connect(c.destination);s.start(0,off||0);playing=s;PL={x,sr,off:off||0,t0:c.currentTime,tune:false,paused:false};
   s.onended=()=>{if(playing===s){playing=null;PL=null;soundUI();}};soundUI();}
 // leaving the screen or the app pauses whatever is playing
 new MutationObserver(()=>soundPause()).observe(document.body,{attributes:true,attributeFilter:['data-view']});
@@ -1238,7 +1237,7 @@ function tuneAudio(T,sr,voice){const end=Math.max.apply(null,T.notes.map(n=>n.t+
   for(const N of T.notes){const f=midiHz(N.m),i0=Math.round(N.t*sr),n=Math.round(N.d*sr);let ph=0;for(let i=0;i<n&&i0+i<o.length;i++){const t=i/sr;ph+=TAU*f*(1+(voice?0.006*Math.sin(TAU*5.5*t):0))/sr;const env=Math.min(1,t/0.02)*Math.min(1,(N.d-t)/0.04);o[i0+i]+=0.32*env*(Math.sin(ph)+0.35*Math.sin(2*ph)+0.12*Math.sin(3*ph));}}return o;}
 let TUNE=null,tuneT0=0;
 function showTune(T,name){TUNE=T;serr('');setSub('tune',true);$('tres').hidden=false;pop($('tres'));$('ushare').hidden=false;resetShare('ushare');$('tname').textContent=name;$('tnotes').textContent=T.notes.map(n=>midiName(n.m)).join('  ');$('tform').textContent=tuneFormula(T);
-  const dur=Math.max.apply(null,T.notes.map(n=>n.t+n.d));$('tcount').textContent=T.notes.length;$('tlen').textContent=num(dur,2)+' s';$('torig').hidden=!T.orig;drawRoll(-1);}
+  const dur=Math.max.apply(null,T.notes.map(n=>n.t+n.d));$('tcount').textContent=T.notes.length;$('tlen').textContent=num(dur,2)+' s';$('torig').hidden=true;drawRoll(-1);}
 function drawRoll(ph){const cv=$('troll'),c=cv.getContext('2d'),W=cv.width,H=cv.height;scopeBg(c,W,H);if(!TUNE)return;const ns=TUNE.notes,lo=Math.min.apply(null,ns.map(n=>n.m))-1.5,hi=Math.max.apply(null,ns.map(n=>n.m))+1.5,dur=Math.max.apply(null,ns.map(n=>n.t+n.d)),L=16,R=W-16,T=34,B=H-16;
   c.font='500 22px '+css('--sans');c.textAlign='center';c.textBaseline='bottom';ns.forEach(n=>{const x=L+(R-L)*n.t/dur,w=Math.max(8,(R-L)*n.d/dur-4),y=B-(B-T)*(n.m-lo)/(hi-lo),on=ph>=n.t&&ph<n.t+n.d;c.fillStyle=css(on?'--scr-data':'--scr-fit');c.shadowColor=c.fillStyle;c.shadowBlur=on?22:10;c.beginPath();c.roundRect?c.roundRect(x,y-9,w,18,9):c.rect(x,y-9,w,18);c.fill();c.shadowBlur=0;c.fillStyle=css('--scr-text');if(w>30||ns.length<12)c.fillText(midiName(n.m),x+w/2,y-12);});
   if(ph>=0){const x=L+(R-L)*Math.min(1,ph/dur);c.strokeStyle=css('--scr-ink');c.lineWidth=2;c.beginPath();c.moveTo(x,6);c.lineTo(x,H-6);c.stroke();}
@@ -4087,7 +4086,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   hub.querySelectorAll('.lhub-t').forEach(b=>b.addEventListener('click',()=>labOpenCat(b.dataset.c)));$('lall').addEventListener('click',()=>labHub());
   if(view==='lab')labHub();})();
 // the version number, at the bottom of the Menu, so it is easy to tell which update is installed
-(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 43';m.appendChild(p);})();
+(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 44';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
