@@ -808,7 +808,7 @@ body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
     <section class="card" id="tres" hidden><h3 id="tname"></h3><div class="screen" style="box-shadow:none"><canvas id="troll" width="680" height="260" aria-label="The notes of the tune, left to right in time, higher notes drawn higher"></canvas></div>
       <p class="eq" id="tnotes"></p><p class="eq dim" id="tform"></p>
       <div class="stats"><div class="stat"><b id="tcount"></b><span>notes</span></div><div class="stat"><b id="tlen"></b><span>long</span></div></div>
-      <div class="row"><button type="button" class="primary" id="tplay">Play the notes</button><button type="button" id="torig">Play the original</button></div></section>
+      <div class="row"><button type="button" class="primary" id="tplay">▶ Play the notes</button><button type="button" id="torig">Play the original</button></div></section>
     <section class="card" id="ushare" hidden><h2>Send the tune</h2><p class="small">One tap sends a link. Your friend opens it and hears your tune played from its notes.</p>
       <div class="row"><button type="button" class="primary" data-copy="send">Send to a friend</button><button type="button" data-copy="code">Copy code</button><button type="button" data-copy="save">Save to my creations</button></div><p class="small" data-msg role="status"></p><textarea readonly hidden data-out aria-label="What to send"></textarea></section>
     </div>
@@ -1146,7 +1146,20 @@ function synth(S,sr,shift){const f=S.f0*Math.pow(2,(shift||0)/12),dur=S.k>0?Math
   for(let i=0;i<n;i++){const t=i/sr;let v=0;for(let h=0;h<S.amps.length;h++){if((h+1)*f>sr*0.45)break;v+=S.amps[h]*Math.sin(TAU*(h+1)*f*t);}
     let env=S.k>0?Math.exp(-S.k*t):1;env*=Math.min(1,t/0.008)*Math.min(1,(dur-t)/0.03);o[i]=0.8*v/norm*env;}return o;}
 let actx=null;function ctxA(){if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(!C)throw new Error('This browser cannot play sound from a page.');actx=new C();}if(actx.state==='suspended')actx.resume();return actx;}
-let playing=null;function play(x,sr){const c=ctxA();if(playing){try{playing.stop();}catch(e){}}const b=c.createBuffer(1,x.length,sr);b.getChannelData(0).set(x);const s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start();playing=s;}
+let playing=null,PL=null;
+function soundUI(){try{const b=$('tplay');if(b){const on=!!playing&&PL&&PL.tune,pz=!!(PL&&PL.paused&&PL.tune);b.textContent=on?'⏸ Pause':pz?'▶ Resume':'▶ Play the notes';}if(!playing&&TUNE&&view==='sound')drawRoll(PL&&PL.paused&&PL.tune?PL.off:-1);}catch(e){}}
+function soundStop(keep){if(playing){const s=playing;playing=null;try{s.onended=null;s.stop();}catch(e){}}if(!keep)PL=null;soundUI();}
+function soundPause(){if(!playing||!PL||!actx)return false;PL.off+=actx.currentTime-PL.t0;PL.paused=true;soundStop(true);return true;}
+function soundResume(){if(!PL||!PL.paused)return;const P=PL;if(P.off>=P.x.length/P.sr-0.05)P.off=0;if(P.tune)playTune(P.x,P.sr,P.off);else play(P.x,P.sr,P.off);}
+function soundToggle(){if(playing&&PL){soundPause();return true;}if(PL&&PL.paused){soundResume();return true;}return false;}
+function play(x,sr,off){const c=ctxA();soundStop();const b=c.createBuffer(1,x.length,sr);b.getChannelData(0).set(x);const s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0,off||0);playing=s;PL={x,sr,off:off||0,t0:c.currentTime,tune:false,paused:false};
+  s.onended=()=>{if(playing===s){playing=null;PL=null;soundUI();}};soundUI();}
+// leaving the screen or the app pauses whatever is playing
+new MutationObserver(()=>soundPause()).observe(document.body,{attributes:true,attributeFilter:['data-view']});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){soundPause();try{if(actx)actx.suspend();}catch(e){}}else{try{if(actx&&actx.state==='suspended')actx.resume();}catch(e){}}});
+window.addEventListener('pagehide',()=>{soundPause();});
+// a tap on a sound screen pauses (and, for a tune, resumes)
+document.addEventListener('pointerdown',e=>{const sc=e.target.closest&&e.target.closest('#v-sound .screen');if(!sc)return;if(sc.querySelector('#troll')){if(PL&&PL.tune)soundToggle();}else if(playing)soundStop();});
 let SND=null;const serr=m=>{$('serr').textContent=m||'';$('serr').hidden=!m;};
 function showSound(S,name){SND=S;serr('');setSub('one',true);$('sres').hidden=false;pop($('sres'));$('sshare').hidden=false;resetShare('sshare');$('sname').textContent=name;const nt=noteOf(S.f0);
   const list=S.amps.map((a,i)=>num(a,2)+' sin(2π·'+num((i+1)*S.f0,4)+'·t)').filter((s,i)=>S.amps[i]>=0.02||i===0);
@@ -1228,9 +1241,10 @@ function showTune(T,name){TUNE=T;serr('');setSub('tune',true);$('tres').hidden=f
   const dur=Math.max.apply(null,T.notes.map(n=>n.t+n.d));$('tcount').textContent=T.notes.length;$('tlen').textContent=num(dur,2)+' s';$('torig').hidden=!T.orig;drawRoll(-1);}
 function drawRoll(ph){const cv=$('troll'),c=cv.getContext('2d'),W=cv.width,H=cv.height;scopeBg(c,W,H);if(!TUNE)return;const ns=TUNE.notes,lo=Math.min.apply(null,ns.map(n=>n.m))-1.5,hi=Math.max.apply(null,ns.map(n=>n.m))+1.5,dur=Math.max.apply(null,ns.map(n=>n.t+n.d)),L=16,R=W-16,T=34,B=H-16;
   c.font='500 22px '+css('--sans');c.textAlign='center';c.textBaseline='bottom';ns.forEach(n=>{const x=L+(R-L)*n.t/dur,w=Math.max(8,(R-L)*n.d/dur-4),y=B-(B-T)*(n.m-lo)/(hi-lo),on=ph>=n.t&&ph<n.t+n.d;c.fillStyle=css(on?'--scr-data':'--scr-fit');c.shadowColor=c.fillStyle;c.shadowBlur=on?22:10;c.beginPath();c.roundRect?c.roundRect(x,y-9,w,18,9):c.rect(x,y-9,w,18);c.fill();c.shadowBlur=0;c.fillStyle=css('--scr-text');if(w>30||ns.length<12)c.fillText(midiName(n.m),x+w/2,y-12);});
-  if(ph>=0){const x=L+(R-L)*Math.min(1,ph/dur);c.strokeStyle=css('--scr-ink');c.lineWidth=2;c.beginPath();c.moveTo(x,6);c.lineTo(x,H-6);c.stroke();}}
-function playTune(x,sr){play(x,sr);tuneT0=performance.now();const dur=x.length/sr;if(reduce)return;const step=()=>{const t=(performance.now()-tuneT0)/1000;if(t>dur||view!=='sound'||!TUNE){drawRoll(-1);return;}drawRoll(t);requestAnimationFrame(step);};requestAnimationFrame(step);}
-$('tplay').addEventListener('click',()=>{if(!TUNE)return;try{const sr=ctxA().sampleRate;playTune(tuneAudio(TUNE,sr,false),sr);}catch(e){serr(e.message);}});
+  if(ph>=0){const x=L+(R-L)*Math.min(1,ph/dur);c.strokeStyle=css('--scr-ink');c.lineWidth=2;c.beginPath();c.moveTo(x,6);c.lineTo(x,H-6);c.stroke();}
+  if(PL&&PL.paused&&PL.tune){c.fillStyle='rgba(2,6,23,.62)';c.beginPath();c.arc(W/2,H/2,54,0,TAU);c.fill();c.fillStyle='#fff';c.fillRect(W/2-22,H/2-26,15,52);c.fillRect(W/2+7,H/2-26,15,52);c.font='600 18px '+css('--sans');c.textAlign='center';c.textBaseline='top';c.fillText('Paused · tap to play',W/2,H/2+62);}}
+function playTune(x,sr,off){play(x,sr,off);const me=PL;me.tune=true;soundUI();if(reduce)return;const step=()=>{if(PL!==me||!playing||!TUNE){if(PL!==me)drawRoll(-1);return;}drawRoll(me.off+(actx.currentTime-me.t0));requestAnimationFrame(step);};requestAnimationFrame(step);}
+$('tplay').addEventListener('click',()=>{if(!TUNE)return;if(PL&&PL.tune&&soundToggle())return;try{const sr=ctxA().sampleRate;playTune(tuneAudio(TUNE,sr,false),sr);}catch(e){serr(e.message);}});
 $('torig').addEventListener('click',()=>{if(!TUNE||!TUNE.orig)return;try{ctxA();play(TUNE.orig.x,TUNE.orig.sr);}catch(e){serr(e.message);}});
 const SAMPLE_TUNE={notes:[[60,0,0.34],[64,0.4,0.34],[67,0.8,0.5],[64,1.4,0.3],[62,1.76,0.3],[65,2.12,0.46],[64,2.66,0.3],[60,3.02,0.8]].map(a=>({m:a[0],t:a[1],d:a[2]}))};
 $('tsample').addEventListener('click',()=>{stopMic();try{const sr=44100,x=tuneAudio(SAMPLE_TUNE,sr,true);showTune(findNotes(x,sr),'A hummed tune (made by the app)');ctxA();play(x,sr);}catch(e){serr(e.message);}});
@@ -1957,7 +1971,7 @@ document.querySelectorAll('#noiseseg button').forEach(b=>b.addEventListener('cli
 $('wipe').addEventListener('click',()=>{$('wipeask').hidden=false;$('wipemsg').textContent='';});$('wipeno').addEventListener('click',()=>{$('wipeask').hidden=true;});
 $('wipeyes').addEventListener('click',()=>{try{localStorage.removeItem('fp-daily');localStorage.removeItem('fp-saved');}catch(e){}SAVED=[];memLevel={lvl:1,lp:0,speed:0};$('wipeask').hidden=true;$('wipemsg').textContent='Cleared. You are back on level 1 with no saved creations.';});
 // sound tools: one shown at a time
-let ssub='one';function setSub(n,quiet){if(n===ssub&&!quiet)return;if(n!==ssub)stopMic();ssub=n;document.querySelectorAll('#v-sound .sub').forEach(d=>{d.hidden=d.dataset.sub!==n;});document.querySelectorAll('#stabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sub===n?'true':'false'));serr('');if(n==='voice')drawV();if(n==='one')kickSound();}
+let ssub='one';function setSub(n,quiet){if(n===ssub&&!quiet)return;if(n!==ssub){stopMic();soundPause();}ssub=n;document.querySelectorAll('#v-sound .sub').forEach(d=>{d.hidden=d.dataset.sub!==n;});document.querySelectorAll('#stabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sub===n?'true':'false'));serr('');if(n==='voice')drawV();if(n==='one')kickSound();}
 document.querySelectorAll('#stabs button').forEach(b=>b.addEventListener('click',()=>setSub(b.dataset.sub)));
 
 // ================= home tiles =================
@@ -4073,7 +4087,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   hub.querySelectorAll('.lhub-t').forEach(b=>b.addEventListener('click',()=>labOpenCat(b.dataset.c)));$('lall').addEventListener('click',()=>labHub());
   if(view==='lab')labHub();})();
 // the version number, at the bottom of the Menu, so it is easy to tell which update is installed
-(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 42';m.appendChild(p);})();
+(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 43';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
