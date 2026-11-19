@@ -670,7 +670,7 @@ body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
       <details class="faq"><summary>What is in the Locker?</summary><p>Open Menu, then Me. You can set your player name and build your avatar (hair, skin tone, outfit, accessory and frame), and choose an app theme, drawing pen, win celebration, Rising tiles colours and sound, Cue shot table, cannon trail and Jet tag laser. Looks unlock for good at the highest tier you have reached, even if you later drop a tier. Items marked ✦ cost one Gold pass and are yours for good.</p></details>
       <details class="faq"><summary>Do I need to pay for anything?</summary><p>No. Everything is earned by playing. There is no money, no ads and no shop.</p></details></section>
     <section class="card"><h2>Motion lab</h2>
-      <details class="faq"><summary>What is the Inventors section?</summary><p>In Motion lab, tap ✨ Inventors. Ten famous machines, from Leonardo da Vinci's aerial screw and giant crossbow to Nikola Tesla's coil and motor, first appear as an ink sketch. Tap “Bring it to life” to see them work, then move the sliders to change sizes, forces and speeds and see the real numbers, like whether the machine would actually fly.</p></details>
+      <details class="faq"><summary>What is the Inventors section?</summary><p>In Motion lab, tap ✨ Inventors. Famous machines, from Leonardo da Vinci's aerial screw and giant crossbow to Nikola Tesla's coil and motor, first appear as an ink sketch. Tap “Bring it to life” to see them work, then move the sliders to change sizes, forces and speeds and see the real numbers, like whether the machine would actually fly.</p></details>
       <details class="faq"><summary>What is the Motion lab?</summary><p>Five motions worked out from the laws of physics: a pendulum, a dropped ball, a thrown ball, a weight on a spring and a spinning wheel. It plays like a video, with the time, position, speed and acceleration written on the picture as it moves.</p></details>
       <details class="faq"><summary>How do I change it?</summary><p>Use the sliders and the gravity buttons under “Change it”, or drag the object on the picture: drag the pendulum to set its angle, the dropped ball to set its height, the spring weight to set how far it is pulled, and away from the throw's start point to aim the throw.</p></details>
       <details class="faq"><summary>What do the arrows and dots mean?</summary><p>The blue arrow is the velocity: where the object is heading and how fast. The amber arrow is the acceleration. Longer means bigger. The orange dots are where the object was at equal steps of time, so dots far apart mean it was moving fast.</p></details>
@@ -1217,7 +1217,11 @@ function findNotes(x,sr,bg){const hop=1024,W=1024,need=W+Math.ceil(sr/70)+2,fr=[
   const notes=[];let cur=null;const close=()=>{if(cur&&cur.ms.length>=4){const s=cur.ms.slice().sort((p,q)=>p-q),med=s[s.length>>1];notes.push({m:Math.round(med),t:cur.i0*hop/sr,d:cur.ms.length*hop/sr,exact:med});}cur=null;};
   fr.forEach((f,i)=>{if(f.m==null){close();return;}if(cur){const s=cur.ms.slice().sort((p,q)=>p-q),med=s[s.length>>1];if(Math.abs(f.m-med)<0.65){cur.ms.push(f.m);return;}close();}cur={i0:i,ms:[f.m]};});close();
   if(!notes.length)throw new Error('No notes were found. Hum or whistle each note clearly for at least a tenth of a second.');const t0=notes[0].t;notes.forEach(n=>{n.t-=t0;});return {notes,orig:{x,sr}};}
-function tuneAudio(T,sr,voice){const end=Math.max.apply(null,T.notes.map(n=>n.t+n.d)),o=new Float32Array(Math.round((end+0.25)*sr));
+function tuneAudio(T,sr,voice){const end=Math.max.apply(null,T.notes.map(n=>n.t+n.d)),o=new Float32Array(Math.round((end+(voice?0.25:0.9))*sr));
+  // a piano-like note: a quick soft attack, then it rings and fades, and the brighter overtones fade first
+  if(!voice){const HA=[1,0.42,0.2,0.09,0.04];for(const N of T.notes){const f=midiHz(N.m),i0=Math.round(N.t*sr),n=Math.round((N.d+0.6)*sr),w=TAU*f/sr,k0=Math.max(0.9,1.1+(N.m-60)*0.03);
+      for(let i=0;i<n&&i0+i<o.length;i++){const t=i/sr,rel=t>N.d?Math.exp(-(t-N.d)/0.09):1,att=Math.min(1,t/0.008);let s=0;for(let h=0;h<5;h++)s+=HA[h]*Math.exp(-t*k0*(1+h*0.85))*Math.sin(w*(h+1)*i);o[i0+i]+=0.26*att*rel*s;}}
+    let pk=0;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>pk)pk=a;}if(pk>0.9){const g=0.9/pk;for(let i=0;i<o.length;i++)o[i]*=g;}return o;}
   for(const N of T.notes){const f=midiHz(N.m),i0=Math.round(N.t*sr),n=Math.round(N.d*sr);let ph=0;for(let i=0;i<n&&i0+i<o.length;i++){const t=i/sr;ph+=TAU*f*(1+(voice?0.006*Math.sin(TAU*5.5*t):0))/sr;const env=Math.min(1,t/0.02)*Math.min(1,(N.d-t)/0.04);o[i0+i]+=0.32*env*(Math.sin(ph)+0.35*Math.sin(2*ph)+0.12*Math.sin(3*ph));}}return o;}
 let TUNE=null,tuneT0=0;
 function showTune(T,name){TUNE=T;serr('');setSub('tune',true);$('tres').hidden=false;pop($('tres'));$('ushare').hidden=false;resetShare('ushare');$('tname').textContent=name;$('tnotes').textContent=T.notes.map(n=>midiName(n.m)).join('  ');$('tform').textContent=tuneFormula(T);
@@ -2411,12 +2415,13 @@ const FAMOUS=[['Ode to Joy (Beethoven)',0.42,'E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E
   ['In the Hall of the Mountain King (Grieg)',0.3,'A3 B3 C4 D4 E4 C4 E4:2 D#4 B3 D#4:2 D4 A#3 D4:2'],
   ['Amazing Grace',0.42,'G3 C4:2 E4:0.5 C4:0.5 E4:2 D4 C4:2 A3 G3:2']];
 const NMAP={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-function famousT(i,maxDur){const F=FAMOUS[i];let beat=F[1],t=0;const raw=F[2].split(' ').map(tok=>{const [n,b]=tok.split(':');return {n,b:b?Number(b):1};});const total=raw.reduce((s,x)=>s+x.b,0);if(maxDur&&total*beat>maxDur)beat=maxDur/total;
-  const notes=[];raw.forEach(x=>{if(x.n!=='R'){const m=x.n.match(/^([A-G])(#?)(\d)$/);const midi=12*(Number(m[3])+1)+NMAP[m[1]]+(m[2]?1:0);notes.push({m:midi,t,d:x.b*beat*0.9});}t+=x.b*beat;});return {notes};}
+const FAM_BEAT={'Jingle Bells':0.3,'Twinkle Twinkle Little Star':0.46,'Happy Birthday':0.5,'Ode to Joy (Beethoven)':0.42,'Mary Had a Little Lamb':0.4,'Frère Jacques':0.42,'Für Elise (Beethoven)':0.46,'Amazing Grace':0.62,'Brahms’ Lullaby':0.6,'Canon in D (Pachelbel)':0.5,'In the Hall of the Mountain King (Grieg)':0.48};
+function famousT(i,maxDur,short){const F=FAMOUS[i];let beat=F[1],t=0;let src=F[2],sep=':';if(!maxDur&&!short){const S=TILE_SONGS.find(s=>s[0]===F[0]);if(S&&FAM_BEAT[F[0]]){src=S[3];sep='/';beat=FAM_BEAT[F[0]];}}const raw=src.split(' ').map(tok=>{const [n,b]=tok.split(sep);return {n,b:b?Number(b):1};});const total=raw.reduce((s,x)=>s+x.b,0);if(maxDur&&total*beat>maxDur)beat=maxDur/total;
+  const notes=[];raw.forEach(x=>{if(x.n!=='R'){const m=x.n.match(/^([A-G])(#?)(\d)$/);const midi=12*(Number(m[3])+1)+NMAP[m[1]]+(m[2]?1:0);notes.push({m:midi,t,d:x.b*beat*0.96});}t+=x.b*beat;});return {notes};}
 function tuneFormula(T){const hz=m=>440*Math.pow(2,(m-69)/12);const uniq=[...new Set(T.notes.map(n=>n.m))].slice(0,5);return 'Each note is a wave y = sin(2π f t), with f = 440 × 2^((n − 69) / 12). Here: '+uniq.map(m=>midiName(m)+' = '+num(hz(m),4)+' Hz').join(', ')+(T.notes.length>5?' …':'');}
 function famousFill(id){$(id).innerHTML='<option value="">Choose a tune…</option>'+FAMOUS.map((f,i)=>'<option value="'+i+'">'+esc(f[0])+'</option>').join('');}
 ['fam1','fam2','fam3'].forEach(famousFill);
-$('fam1').addEventListener('change',()=>{const i=$('fam1').value;if(i==='')return;stopMic();try{const sr=44100,T=famousT(Number(i)),x=tuneAudio(T,sr,false),L=T.notes.reduce((a,b)=>b.d>a.d?b:a),a0=Math.round(L.t*sr),a1=Math.min(x.length,Math.round((L.t+L.d+0.15)*sr));
+$('fam1').addEventListener('change',()=>{const i=$('fam1').value;if(i==='')return;stopMic();try{const sr=44100,T=famousT(Number(i),0,true),x=tuneAudio(T,sr,false),L=T.notes.reduce((a,b)=>b.d>a.d?b:a),a0=Math.round(L.t*sr),a1=Math.min(x.length,Math.round((L.t+L.d+0.15)*sr));
     showSound(analyseSound(x.subarray(a0,a1),sr),FAMOUS[i][0]+': its longest note, '+midiName(L.m));ctxA();play(x,sr);}catch(e){serr(e.message);}});
 $('fam2').addEventListener('change',()=>{const i=$('fam2').value;if(i==='')return;stopMic();try{const sr=44100,T=famousT(Number(i)),x=tuneAudio(T,sr,false);showTune(T,FAMOUS[i][0]+' (played by the app)');ctxA();playTune(x,sr);}catch(e){serr(e.message);}});
 $('fam3').addEventListener('change',()=>{const i=$('fam3').value;if(i==='')return;stopMic();const sr=44100,T=famousT(Number(i),5.6),x=tuneAudio(T,sr,true);try{ctxA();play(x,sr);}catch(e){}startVoice(el=>{const k=Math.round(el*sr);return k>2400?x.subarray(k-2400,k):null;},sr);$('vmsg').textContent=FAMOUS[i][0]+' is drawing: high notes go up, low notes go down.';});
@@ -2437,7 +2442,7 @@ function cheer(kind,sub,title,emoji,opt){opt=opt||{};try{if(kind==='win'&&!opt.s
   if(kind==='miss'&&!opt.small){const sc=document.querySelector('.view:not([hidden]) .screen');if(sc){sc.classList.remove('shake');void sc.offsetWidth;sc.classList.add('shake');}}
   buzz(kind==='win'?[18,40,18,40,30]:kind==='good'?12:kind==='close'?[10,30,10]:[40]);if(!opt.quiet)jingle(kind,!!opt.small);}
 function jingle(kind,small){if(!cheerSnd)return;let c;try{c=ctxA();}catch(e){return;}if(!c||!c.createOscillator)return;const t0=c.currentTime+0.01,out=c.createGain();out.gain.value=small?0.10:0.16;out.connect(c.destination);
-  const note=(m,t,d,type,bend)=>{const o=c.createOscillator(),g=c.createGain();o.type=type||'triangle';const f=440*Math.pow(2,(m-69)/12);o.frequency.setValueAtTime(f,t0+t);if(bend)o.frequency.exponentialRampToValueAtTime(f*bend,t0+t+d);g.gain.setValueAtTime(0.0001,t0+t);g.gain.exponentialRampToValueAtTime(1,t0+t+0.015);g.gain.exponentialRampToValueAtTime(0.0001,t0+t+d);o.connect(g);g.connect(out);o.start(t0+t);o.stop(t0+t+d+0.05);};
+  const note=(m,t,d,type,bend)=>{while(m>72)m-=12;const o=c.createOscillator(),g=c.createGain();o.type=type==='square'?'triangle':(type||'triangle');const f=440*Math.pow(2,(m-69)/12);o.frequency.setValueAtTime(f,t0+t);if(bend)o.frequency.exponentialRampToValueAtTime(f*bend,t0+t+d);g.gain.setValueAtTime(0.0001,t0+t);g.gain.exponentialRampToValueAtTime(1,t0+t+0.015);g.gain.exponentialRampToValueAtTime(0.0001,t0+t+d);o.connect(g);g.connect(out);o.start(t0+t);o.stop(t0+t+d+0.05);};
   try{if(kind==='win'){[72,76,79,84].forEach((m,i)=>note(m,i*0.085,0.22));note(88,0.36,0.5,'sine');note(91,0.42,0.45,'sine');}
     else if(kind==='good'){note(76,0,0.12);note(81,0.08,0.22);}
     else if(kind==='close'){note(67,0,0.14);note(71,0.1,0.14);note(70,0.2,0.32,'triangle',0.97);}
@@ -2936,7 +2941,7 @@ function padChord(ms,dur,vol,when){let B;try{B=musBus();}catch(e){return;}const 
   ms.forEach((m,k)=>{const f=440*Math.pow(2,(m-69)/12),g=c.createGain();const peak=k===0?v*1.7:v;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(peak,t0+(k===0?0.02:0.09));g.gain.setTargetAtTime(peak*0.6,t0+0.2,0.4);g.gain.setTargetAtTime(0.0001,t0+len,0.18);
     const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=k===0?700:1500;g.connect(lp);lp.connect(B.dry);lp.connect(B.rv);
     [0,k===0?0:6].forEach(dt=>{const o=c.createOscillator();o.type=k===0?'triangle':'sine';o.frequency.value=f;o.detune.value=dt;o.connect(g);o.start(t0);o.stop(t0+len+1);});});}
-function g3note(m,dur,vol){piano(m,dur||1.1,vol||0.22);}
+function g3note(m,dur,vol){while(m>72)m-=12;piano(m,dur||1.1,vol||0.22);}
 const NOTE_N=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'],noteName=m=>NOTE_N[((m%12)+12)%12]+(Math.floor(m/12)-1),noteHz=m=>440*Math.pow(2,(m-69)/12);
 
 // longer public-domain melodies for Rising tiles (each is 30 seconds or more of tapping)
@@ -3377,7 +3382,7 @@ G3LIST.filter(G=>!GAMES.some(x=>x.id===G.id)).forEach(G=>{GAMES.push({id:G.id,se
 
 // a soft laser "pew": a short falling tone, filtered, instead of a sharp beep
 let pewLast=0;function laserPew(){let c;try{c=ctxA();}catch(e){return;}const now=c.currentTime;if(now-pewLast<0.07)return;pewLast=now;
-  const o=c.createOscillator(),g=c.createGain(),lp=c.createBiquadFilter();o.type='triangle';o.frequency.setValueAtTime(760,now);o.frequency.exponentialRampToValueAtTime(240,now+0.11);
+  const o=c.createOscillator(),g=c.createGain(),lp=c.createBiquadFilter();o.type='triangle';o.frequency.setValueAtTime(480,now);o.frequency.exponentialRampToValueAtTime(170,now+0.11);
   lp.type='lowpass';lp.frequency.value=1600;g.gain.setValueAtTime(0.0001,now);g.gain.exponentialRampToValueAtTime(0.05,now+0.008);g.gain.exponentialRampToValueAtTime(0.0001,now+0.13);o.connect(lp);lp.connect(g);g.connect(c.destination);o.start(now);o.stop(now+0.15);}
 
 // your pilot in Jet tag is your own avatar from Me
@@ -3843,23 +3848,64 @@ const INV=[
       P.tag(40,60,'Launch '+f1(o.v,1)+' m/s','#fbbf24');P.tag(40,94,'Range '+f1(o.R,0)+' m','#4ade80');P.line(0,gy+20,IW,gy+20,'#334155',2);}},
   step(st,p,o,dt){if(st.fire)st.ft+=dt;},action:['🏹 Fire',st=>{st.fire=true;st.ft=0;}]},
 
- {id:'chute',who:'Leonardo da Vinci',year:'about 1485',name:'Pyramid parachute',note:'padiglione di panno · 12 braccia',
-  story:'Leonardo wrote that with a tent of sealed linen 12 arms wide and 12 high, anyone could jump from any height without harm.',
-  params:[['a','Side of the base',3,10,0.1,7,'m'],['m','Jumper and chute',50,140,1,85,'kg'],['h','Jump height',200,3000,50,1000,'m']],
-  calc(p){const A=p.a*p.a,Cd=0.8,vt=Math.sqrt(2*p.m*G0/(RHO*Cd*A)),T=p.h/vt+vt/G0,eq=vt*vt/(2*G0);
-    return {A,vt,T,eq,rows:[['Canopy area',f1(A,1)+' m²'],['Landing speed',f1(vt,1)+' m/s'],['Time to land',f1(T,0)+' s'],['Like jumping from',f1(eq,1)+' m']],
-      formula:['Steady speed v = √(2·m·g / (ρ·C·A)) = √(2·'+p.m+'·9.81 / (1.225·0.8·'+f1(A,1)+')) = '+f1(vt,1)+' m/s','Landing feels like a jump from v²/2g = '+f1(eq,1)+' m'],
-      status:vt<6?'🪂 Soft landing!':vt<9?'A firm landing, like jumping off a wall.':'Too fast: make it wider.',
-      wow:'In 2000 the skydiver Adrian Nicholas jumped with a parachute built to Leonardo\'s design, made of canvas and wood. It worked, and he said the ride was smoother than a modern chute.'};},
-  draw(c,P,p,o,t,st){const cx=360,s=Math.min(1.6,0.5+p.a*0.14),y=120+((st.y||0)%1)*0;const sway=Math.sin(t*1.3)*6;c.save();c.translate(cx+sway,y);
-    P.shape(()=>{c.moveTo(0,-90*s);c.lineTo(-95*s,40*s);c.lineTo(95*s,40*s);c.closePath();},'#e7d7b1');P.line(0,-90*s,0,40*s,'#8b6b47',2);
-    [-95*s,95*s].forEach(x=>P.line(x,40*s,0,170,'#cbd5e1',1.5));P.circle(0,185,12,'#f5c9a0');P.line(0,197,0,240,'#1e3a8a',7);P.line(0,212,-20,230,'#1e3a8a',5);P.line(0,212,20,230,'#1e3a8a',5);P.line(0,240,-12,275,'#1e3a8a',6);P.line(0,240,12,275,'#1e3a8a',6);c.restore();
-    if(P.bp){P.dim(cx-95*s,y+40*s+14,cx+95*s,y+40*s+14,p.a.toFixed(1)+' m');}
-    else{// ground rushing past
-      c.strokeStyle='rgba(148,163,184,.25)';c.lineWidth=2;for(let i=0;i<12;i++){const yy=((i*70-(st.d||0)*20)%IH+IH)%IH,xx=(i*137)%IW;c.beginPath();c.moveTo(xx,yy);c.lineTo(xx,yy+30);c.stroke();}
-      P.tag(40,60,'Speed '+f1(st.v||0,1)+' m/s','#7dd3fc');P.tag(40,94,'Height '+f1(Math.max(0,p.h-(st.d||0)),0)+' m','#facc15');P.tag(470,60,'Air drag = weight at '+f1(o.vt,1)+' m/s','#4ade80');}},
-  step(st,p,o,dt){if(st.v==null){st.v=0;st.d=0;}const a=G0-G0*(st.v/o.vt)**2;st.v=Math.max(0,st.v+a*dt);st.d+=st.v*dt;if(st.d>=p.h){st.d=0;st.v=0;}},action:['🪂 Jump again',st=>{st.v=0;st.d=0;}]},
+ {id:'cart',who:'Leonardo da Vinci',year:'about 1478',name:'Self-moving cart',note:'',
+  story:'A cart that drives itself, powered by wound-up springs like a giant clockwork toy. Many people call it the first design for a robot vehicle.',
+  params:[['k','Spring stiffness',200,3000,50,2000,'N/m'],['x','How far you wind it',0.1,0.6,0.01,0.5,'m'],['m','Cart mass',20,150,1,60,'kg'],['mu','Rolling friction',0.02,0.2,0.01,0.06,'']],
+  calc(p){const E=0.5*p.k*p.x*p.x,eta=0.7,v=Math.sqrt(2*eta*E/p.m),d=eta*E/(p.mu*p.m*G0),tt=v/(p.mu*G0);
+    return {E,v,d,tt,rows:[['Energy in the springs',f1(E,1)+' J'],['Top speed',f1(v,2)+' m/s'],['Distance it rolls',f1(d,2)+' m'],['Time until it stops',f1(tt,1)+' s']],
+      formula:['Spring energy E = ½·k·x² = ½·'+p.k+'·'+p.x.toFixed(2)+'² = '+f1(E,1)+' J','Speed v = √(2·η·E/m) = '+f1(v,2)+' m/s (η = 0.7)','Distance d = η·E / (μ·m·g) = '+f1(d,2)+' m'],
+      status:d>10?'🛞 It rolls a long way!':'It rolls '+f1(d,1)+' m. Wind it further or use stiffer springs.',
+      wow:'In 2004 a museum in Florence built the cart from Leonardo\'s drawing, and it worked. It could even be set to steer by itself along a planned path.'};},
+  draw(c,P,p,o,t,st){const gy=420,x=110+Math.min(1,(st.x||0)/Math.max(0.1,o.d))*460,wr=(st.x||0)*6;P.line(0,gy+34,IW,gy+34,'#334155',2);
+    c.save();c.translate(x,gy);P.shape(()=>{c.rect(-90,-50,180,40);},'#8b6b47');[[-60,0],[60,0],[0,-70]].forEach(([dx,dy],k)=>{if(k<2){P.circle(dx,dy,32,'#5b4127');for(let q=0;q<6;q++){const a=wr+q*TAU/6;P.line(dx,dy,dx+Math.cos(a)*30,dy+Math.sin(a)*30,'#d6a76a',2);}}});
+    [[-40,-78],[40,-78]].forEach(([dx,dy])=>{c.strokeStyle=P.bp?'#4a2f17':'#facc15';c.lineWidth=2.5;c.beginPath();const turns=4,rr=26*(1-0.5*Math.min(1,(st.x||0)/Math.max(0.1,o.d)));for(let a=0;a<turns*TAU;a+=0.2){const r=rr*a/(turns*TAU);c.lineTo(dx+Math.cos(a)*r,dy+Math.sin(a)*r);}c.stroke();P.ring(dx,dy,28,'#a16207',3);});c.restore();
+    if(P.bp)P.dim(110,gy+60,570,gy+60,'d = '+f1(o.d,1)+' m');else{P.tag(40,60,'Speed '+f1(st.v||0,2)+' m/s','#7dd3fc');P.tag(40,94,'Rolled '+f1(Math.min(st.x||0,o.d),2)+' of '+f1(o.d,2)+' m','#4ade80');P.tag(470,60,'Spring energy '+f1(o.E,1)+' J','#facc15');}},
+  step(st,p,o,dt){if(st.ph==null){st.ph=0;st.v=0;st.x=0;st.w=0;}if(st.ph===0){st.v=Math.min(o.v,st.v+o.v*dt/0.5);if(st.v>=o.v)st.ph=1;}else if(st.ph===1){st.v=Math.max(0,st.v-p.mu*G0*dt);if(st.v<=0){st.ph=2;st.w=0;}}else{st.w+=dt;if(st.w>1.6){st.ph=0;st.v=0;st.x=0;}}st.x+=st.v*dt*(o.d>12?o.d/12:1);},action:['🛞 Wind up and go',st=>{st.ph=0;st.v=0;st.x=0;}]},
 
+ {id:'lever',who:'Archimedes',year:'about 250 BC',name:'The lever',note:'',
+  story:'"Give me a place to stand and I will move the Earth." Archimedes showed that a long enough lever lets a small push lift a huge load.',
+  params:[['m','Load',50,2000,10,400,'kg'],['a','Load arm (short side)',0.2,2,0.1,0.5,'m'],['b','Push arm (long side)',1,10,0.1,4,'m'],['F','Your push',100,800,10,500,'N']],
+  calc(p){const need=p.m*G0*p.a/p.b,MA=p.b/p.a,ok=p.F>=need;return {need,MA,ok,rows:[['Load weighs',f1(p.m*G0,0)+' N'],['Push needed',f1(need,0)+' N'],['The lever multiplies force by',f1(MA,1)+' ×'],['Push down 1 m, load rises',f1(100/MA,1)+' cm']],
+      formula:['Balance: push · long arm = weight · short arm','Push needed = m·g·a / b = '+p.m+'·9.81·'+p.a.toFixed(1)+' / '+p.b.toFixed(1)+' = '+f1(need,0)+' N','You trade distance for force: '+f1(MA,1)+' times less push, '+f1(MA,1)+' times more movement'],
+      status:ok?'💪 It lifts! Your '+p.F+' N is enough.':'Not enough: you need '+f1(need,0)+' N. Make the push arm longer or move the load closer to the pivot.',
+      wow:'Scissors, see-saws, bottle openers, wheelbarrows and your own forearm are all levers.'};},
+  draw(c,P,p,o,t,st){const fx=250,fy=400,sa=Math.min(170,60+p.a*60),sb=Math.min(400,60+p.b*36),ang=o.ok?-0.16+0.16*Math.sin((st.a||0)*1.6):-0.16;
+    P.shape(()=>{c.moveTo(fx-40,fy+60);c.lineTo(fx,fy);c.lineTo(fx+40,fy+60);c.closePath();},'#64748b');P.line(0,fy+60,IW,fy+60,'#334155',2);
+    c.save();c.translate(fx,fy);c.rotate(-ang);P.shape(()=>{c.rect(-sa,-8,sa+sb,14);},'#a16207');const bs=Math.min(64,26+Math.sqrt(p.m)*1.4);P.shape(()=>{c.rect(-sa-bs/2+10,-8-bs,bs,bs);},'#94a3b8');
+    if(!P.bp){c.fillStyle='#0f172a';c.font='700 14px '+css('--sans');c.textAlign='center';c.fillText(p.m+' kg',-sa+10,-8-bs/2+5);}
+    P.circle(sb-10,-70,13,'#f5c9a0');P.line(sb-10,-57,sb-10,-12,'#1e3a8a',7);c.restore();
+    if(P.bp){P.dim(fx-sa,fy+90,fx,fy+90,'a = '+p.a.toFixed(1)+' m');P.dim(fx,fy+90,fx+sb,fy+90,'b = '+p.b.toFixed(1)+' m');}
+    else{P.tag(40,60,'Push needed '+f1(o.need,0)+' N',o.ok?'#4ade80':'#f87171');P.tag(40,94,'Your push '+p.F+' N','#7dd3fc');P.tag(470,60,'Force × '+f1(o.MA,1),'#facc15');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}},
+
+ {id:'balloon',who:'Montgolfier brothers',year:'1783',name:'Hot-air balloon',note:'',
+  story:'Two French paper-makers noticed that hot air rises, filled a huge paper and cloth bag with it, and made the first flying machine to carry living passengers.',
+  params:[['V','Balloon size',200,3000,50,1400,'m³'],['Ti','Air inside',40,120,1,90,'°C'],['To','Air outside',-10,35,1,15,'°C'],['m','Balloon, basket and riders',100,800,10,300,'kg']],
+  calc(p){const ro=353/(p.To+273.15),ri=353/(p.Ti+273.15),lift=(ro-ri)*p.V*G0,W=p.m*G0,net=lift-W;return {ro,ri,lift,W,net,rows:[['Outside air',f1(ro,3)+' kg/m³'],['Hot air inside',f1(ri,3)+' kg/m³'],['Lift',f1(lift,0)+' N'],['Weight to carry',f1(W,0)+' N']],
+      formula:['Hot air is lighter: density ρ ≈ 353 / T (T in kelvin)','Lift = (ρ outside − ρ inside)·V·g = ('+f1(ro,3)+' − '+f1(ri,3)+')·'+p.V+'·9.81 = '+f1(lift,0)+' N'],
+      status:net>0?'🎈 It rises, with '+f1(net,0)+' N to spare.':'Too heavy by '+f1(-net,0)+' N. Heat the air more or use a bigger balloon.',
+      wow:'The first passengers, in September 1783, were a sheep, a duck and a rooster. They landed safely, and people flew two months later.'};},
+  draw(c,P,p,o,t,st){const cx=360,R=Math.min(150,60+Math.cbrt(p.V)*6),y=(P.bp?250:250-(st.y||0)*0.6)+(P.bp?0:Math.sin(t*1.2)*4);
+    if(!P.bp){c.fillStyle='rgba(255,255,255,.08)';[[120,120,60],[560,90,80],[470,300,50]].forEach(([x,yy,w])=>{c.beginPath();c.ellipse(x,(yy+(st.y||0)*0.6)%IH,w,18,0,0,TAU);c.fill();});}
+    P.shape(()=>{c.moveTo(cx-R*0.3,y+R*1.05);c.bezierCurveTo(cx-R*1.3,y+R*0.2,cx-R*1.1,y-R,cx,y-R);c.bezierCurveTo(cx+R*1.1,y-R,cx+R*1.3,y+R*0.2,cx+R*0.3,y+R*1.05);c.closePath();},'#f59e0b');
+    if(!P.bp){['#ef4444','#fde047','#3b82f6'].forEach((col,k)=>{c.strokeStyle=col;c.lineWidth=4;c.beginPath();c.ellipse(cx,y-R*0.1,R*(0.25+k*0.3),R*0.9,0,0,TAU);c.stroke();});
+      const fl=c.createRadialGradient(cx,y+R*1.15,2,cx,y+R*1.15,26+Math.sin(t*20)*4);fl.addColorStop(0,'#fff7ed');fl.addColorStop(0.4,'#fb923c');fl.addColorStop(1,'rgba(251,146,60,0)');c.fillStyle=fl;c.beginPath();c.arc(cx,y+R*1.15,30,0,TAU);c.fill();}
+    P.line(cx-R*0.3,y+R*1.05,cx-22,y+R*1.45,'#cbd5e1',1.5);P.line(cx+R*0.3,y+R*1.05,cx+22,y+R*1.45,'#cbd5e1',1.5);P.shape(()=>{c.rect(cx-24,y+R*1.45,48,30);},'#8b6b47');
+    if(P.bp)P.dim(cx-R,y-R-16,cx+R,y-R-16,'V = '+p.V+' m³');else{P.tag(40,60,'Lift '+f1(o.lift,0)+' N','#4ade80');P.tag(40,94,'Weight '+f1(o.W,0)+' N','#f87171');P.tag(470,60,'Inside '+p.Ti+' °C · outside '+p.To+' °C','#facc15');}},
+  step(st,p,o,dt){const tgt=o.net>0?Math.min(150,o.net/20):0;st.y=(st.y||0)+(tgt-(st.y||0))*Math.min(1,dt*0.8);}},
+
+ {id:'ramp',who:'Galileo Galilei',year:'about 1604',name:'Rolling-ball ramp',note:'',
+  story:'To slow falling down enough to measure it, Galileo rolled balls down a gentle ramp and timed them with water clocks. He found that speed grows steadily: the start of modern physics.',
+  params:[['ang','Ramp tilt',2,30,1,8,'°'],['L','Ramp length',1,6,0.1,4,'m'],['g','Gravity',1.6,24.8,0.1,9.8,'m/s²']],
+  calc(p){const a=5/7*p.g*Math.sin(p.ang*Math.PI/180),T=Math.sqrt(2*p.L/a),v=a*T;return {a,T,v,rows:[['Acceleration',f1(a,2)+' m/s²'],['Time to the bottom',f1(T,2)+' s'],['Speed at the bottom',f1(v,2)+' m/s'],['Distances in equal times','1 : 3 : 5 : 7']],
+      formula:['A rolling ball: a = (5/7)·g·sin θ = (5/7)·'+p.g.toFixed(1)+'·sin '+p.ang+'° = '+f1(a,2)+' m/s²','Distance s = ½·a·t², so time T = √(2L/a) = '+f1(T,2)+' s','Speed v = a·t = '+f1(v,2)+' m/s'],
+      status:'Each quarter of the time, the ball covers 1, then 3, then 5, then 7 parts of the ramp.',wow:'Galileo had no stopwatch. He weighed the water that ran out of a jar while the ball rolled, and some say he sang to keep the beat.'};},
+  draw(c,P,p,o,t,st){const a=p.ang*Math.PI/180,x0=80,Lp=560,va=Math.min(0.5,a*1.2+0.06),y0=150,x1=x0+Math.cos(va)*Lp,y1=y0+Math.sin(va)*Lp;
+    P.shape(()=>{c.moveTo(x0,y0);c.lineTo(x1,y1);c.lineTo(x1,y1+16);c.lineTo(x0,y0+16);c.closePath();},'#a16207');P.line(x1,y1+16,x1,470,'#78350f',6);P.line(x0,y0+16,x0,470,'#78350f',6);P.line(0,470,IW,470,'#334155',2);
+    [1,4,9,16].forEach((q,k)=>{const f=q/16,x=x0+Math.cos(va)*Lp*f,y=y0+Math.sin(va)*Lp*f;P.line(x,y-26,x,y,'#facc15',3);if(!P.bp)P.tag(x-14,y-40,['1','3','5','7'][k],'#facc15');});
+    const f=Math.min(1,((st.a||0)/o.T)**2),bx=x0+Math.cos(va)*Lp*f,by=y0+Math.sin(va)*Lp*f-16;if(P.bp)P.circle(x0+20,y0-10,16,'#94a3b8');else{const g=c.createRadialGradient(bx-5,by-5,2,bx,by,16);g.addColorStop(0,'#fff');g.addColorStop(1,'#64748b');c.fillStyle=g;c.beginPath();c.arc(bx,by,16,0,TAU);c.fill();}
+    if(P.bp)P.dim(x0,y0+60,x1,y1+60,'L = '+p.L.toFixed(1)+' m');else{P.tag(40,60,'Time '+f1(Math.min(st.a||0,o.T),2)+' s','#7dd3fc');P.tag(40,94,'Speed '+f1(o.a*Math.min(st.a||0,o.T),2)+' m/s','#4ade80');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;if(st.a>o.T+1.2)st.a=0;},action:['↺ Roll again',st=>{st.a=0;}]},
  {id:'coil',who:'Nikola Tesla',year:'1891',name:'Tesla coil',note:'',
   story:'Tesla\'s coil pumps energy back and forth between a capacitor and a coil until the voltage on top is so high that it throws lightning into the air.',
   params:[['V1','Input voltage',2,20,0.5,10,'kV'],['N','Turns ratio',20,200,5,100,'×'],['C','Capacitor',2,60,1,20,'nF'],['L','Primary coil',5,120,1,40,'µH']],
@@ -3939,22 +3985,25 @@ const INV=[
     const wa=Math.floor((st.a||0)/(o.T/2))*TAU/30;P.circle(560,140,52,'#94a3b8');for(let k=0;k<15;k++){const a=wa+k*TAU/15;P.line(560+Math.cos(a)*52,140+Math.sin(a)*52,560+Math.cos(a+0.15)*64,140+Math.sin(a+0.15)*64,'#cbd5e1',3);}
     P.circle(560,330,70,'#f8fafc');const sa=(st.a||0)/60*TAU-Math.PI/2;P.line(560,330,560+Math.cos(sa)*58,330+Math.sin(sa)*58,'#ef4444',3);
     if(P.bp)P.dim(cx+40,py,cx+40,py+Lp,'L = '+p.L.toFixed(2)+' m');else{P.tag(40,60,'Swing '+f1(o.T,2)+' s','#f59e0b');P.tag(40,94,'Speed at bottom '+f1(Math.sqrt(2*p.g*p.L*(1-Math.cos(0.35))),2)+' m/s','#7dd3fc');}},
-  step(st,p,o,dt){const prev=st.a||0;st.a=prev+dt;if(Math.floor(st.a/(o.T/2))!==Math.floor(prev/(o.T/2))&&!reduce){try{g3note(84,0.05,0.05);}catch(e){}}}},
+  step(st,p,o,dt){const prev=st.a||0;st.a=prev+dt;if(Math.floor(st.a/(o.T/2))!==Math.floor(prev/(o.T/2)))invClack(0.5,150);}},
 
  {id:'cradle',who:'Isaac Newton',year:'laws of 1687',name:'Newton\'s cradle',note:'',
   story:'Lift one ball and let go: one ball flies out the other side. Lift two: two fly out. Momentum and energy are both passed along the line.',
   params:[['n','Balls lifted',1,4,1,1,''],['h','Lift height',1,20,0.5,8,'cm'],['m','Ball mass',50,500,10,100,'g']],
   calc(p){const v=Math.sqrt(2*G0*p.h/100),pm=p.n*p.m/1000*v,E=p.n*p.m/1000*G0*p.h/100;return {v,pm,E,rows:[['Speed at impact',f1(v,2)+' m/s'],['Momentum passed on',f1(pm,3)+' kg·m/s'],['Energy passed on',f1(E*1000,0)+' mJ']],
-      formula:['v = √(2·g·h) = √(2·9.81·'+(p.h/100).toFixed(3)+') = '+f1(v,2)+' m/s','Momentum p = n·m·v = '+p.n+'·'+(p.m/1000)+'·'+f1(v,2)+' = '+f1(pm,3)+' kg·m/s'],status:'Same number of balls out as in: that is the only way to keep both momentum and energy.',
+      formula:['v = √(2·g·h) = √(2·9.81·'+(p.h/100).toFixed(3)+') = '+f1(v,2)+' m/s','Momentum p = n·m·v = '+p.n+'·'+(p.m/1000)+'·'+f1(v,2)+' = '+f1(pm,3)+' kg·m/s'],status:'Same number of balls out as in: that is the only way to keep both momentum and energy. A little energy is lost at each click, so it slowly comes to rest.',
       wow:'Newton never built one. The toy became famous in the 1960s, but it shows his laws perfectly.'};},
-  draw(c,P,p,o,t,st){const n=5,cx=360,ty=80,Ls=280,rb=26,th0=Math.acos(Math.max(-1,1-(p.h/100)/0.3)),T=TAU*Math.sqrt(0.3/G0)*1.4,ph=((st.a||0)%T)/T;
+  draw(c,P,p,o,t,st){const n=5,cx=360,ty=80,Ls=280,rb=26,th0=Math.acos(Math.max(-1,1-(p.h/100)/0.3))*(st.amp==null?1:st.amp),T=TAU*Math.sqrt(0.3/G0)*1.4,ph=((st.a||0)%T)/T;
     const left=ph<0.5?-th0*Math.cos(ph*2*Math.PI/2*2*0.5*2)*0:0;let aL=0,aR=0;if(ph<0.25)aL=-th0*Math.cos(ph*4*Math.PI/2);else if(ph<0.5)aR=th0*Math.sin((ph-0.25)*4*Math.PI/2);else if(ph<0.75)aR=th0*Math.cos((ph-0.5)*4*Math.PI/2);else aL=-th0*Math.sin((ph-0.75)*4*Math.PI/2);
     P.shape(()=>{c.rect(cx-200,ty-20,400,16);},'#475569');
     for(let i=0;i<n;i++){const hx=cx+(i-2)*rb*2,ang=i<p.n?aL:i>=n-p.n?aR:0,bx=hx+Math.sin(ang)*Ls,by=ty+Math.cos(ang)*Ls;P.line(hx,ty,bx,by,'#cbd5e1',1.5);
       c.save();if(!P.bp){const g=c.createRadialGradient(bx-8,by-8,3,bx,by,rb);g.addColorStop(0,'#fff');g.addColorStop(0.4,'#cbd5e1');g.addColorStop(1,'#475569');c.fillStyle=g;c.beginPath();c.arc(bx,by,rb,0,TAU);c.fill();}else P.circle(bx,by,rb,'#94a3b8');c.restore();}
     if(P.bp)P.dim(cx-260,ty+Ls,cx-260,ty+Ls-Math.min(120,p.h*6),'h = '+p.h+' cm');else{P.tag(40,60,'Impact speed '+f1(o.v,2)+' m/s','#7dd3fc');P.tag(40,94,'Momentum '+f1(o.pm,3)+' kg·m/s','#facc15');}},
-  step(st,p,o,dt){const prev=st.a||0;st.a=prev+dt;const T=TAU*Math.sqrt(0.3/G0)*1.4,q0=(prev%T)/T,q1=(st.a%T)/T;if(!reduce&&((q0<0.25&&q1>=0.25)||(q0<0.75&&q1>=0.75))){try{g3note(96,0.04,0.06);}catch(e){}}}}];
+  step(st,p,o,dt){if(st.amp==null)st.amp=1;if(st.amp<0.04){st.amp=0;return;}st.amp*=Math.exp(-dt/5);const prev=st.a||0;st.a=prev+dt;const T=TAU*Math.sqrt(0.3/G0)*1.4,q0=(prev%T)/T,q1=(st.a%T)/T;if((q0<0.25&&q1>=0.25)||(q0<0.75&&q1>=0.75))invClack(st.amp,240);},action:['↺ Lift again',st=>{st.amp=1;st.a=0;}]}];
 
+// a soft, low knock for the clock and the cradle; only while the machine is running and not paused
+function invClack(vol,hz){if(reduce||INVS.paused||INVS.life<0.6||document.hidden||view!=='lab')return;let c;try{c=ctxA();}catch(e){return;}const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(hz||200,t);o.frequency.exponentialRampToValueAtTime((hz||200)*0.6,t+0.05);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.05*Math.max(0.1,Math.min(1,vol)),t+0.004);g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+0.09);}
 // Tesla coil music: the sparks buzz at each note's pitch
 function coilTune(st){let c;try{c=ctxA();}catch(e){return;}const song=[64,64,65,67,67,65,64,62,60,60,62,64,64,62,62];const t0=c.currentTime+0.05,dur=0.36;st.tune=true;st.on=false;
   const out=c.createGain();out.gain.value=0.07;out.connect(c.destination);song.forEach((m,i)=>{const f=440*Math.pow(2,(m-69)/12),o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0,t0+i*dur);g.gain.linearRampToValueAtTime(1,t0+i*dur+0.01);g.gain.setValueAtTime(1,t0+i*dur+dur*0.8);g.gain.linearRampToValueAtTime(0,t0+i*dur+dur*0.9);o.connect(g);g.connect(out);o.start(t0+i*dur);o.stop(t0+(i+1)*dur);
@@ -3971,10 +4020,11 @@ function invPick(id){const M=INV.find(m=>m.id===id)||INV[0];INVS.id=M.id;INVS.P=
   if(INVS.on&&!INVS.raf)INVS.raf=requestAnimationFrame(invFrame);const act=$('linv-act');act.hidden=!M.action;if(M.action)act.textContent=M.action[0];invMode(0);invNumbers();}
 function invNumbers(){const M=INV.find(m=>m.id===INVS.id),o=M.calc(INVS.P);INVS.o=o;$('linv-stats').innerHTML=o.rows.map(r=>'<div class="stat"><b>'+esc(r[1])+'</b><span>'+esc(r[0])+'</span></div>').join('');
   $('linv-form').innerHTML=o.formula.map(f=>'<div>'+esc(f)+'</div>').join('');$('linv-status').textContent=o.status;$('linv-wow').textContent=o.wow;}
-function invMode(want){INVS.want=want;const b=$('linv-life');b.textContent=want?'📜 See the sketch':'✨ Bring it to life';b.classList.toggle('primary',!want);if(!want)INVS.reveal=0;}
+function invPause(p){INVS.paused=!!p;const b=$('linv-pause');if(b){b.textContent=INVS.paused?'▶ Play':'⏸ Pause';b.hidden=!INVS.want;}}
+function invMode(want){INVS.want=want;const b=$('linv-life');b.textContent=want?'📜 See the sketch':'✨ Bring it to life';b.classList.toggle('primary',!want);if(!want)INVS.reveal=0;invPause(false);}
 function invFrame(now){if(!INVS.on||view!=='lab'){INVS.raf=0;return;}const cv=$('linv-cv');if(!cv||!cv.isConnected){INVS.raf=0;return;}const c=cv.getContext('2d'),M=INV.find(m=>m.id===INVS.id),dt=Math.min(0.05,((now-(INVS.last||now))/1000));INVS.last=now;const t=now/1000;
   INVS.reveal=Math.min(1,INVS.reveal+dt/(reduce?0.01:1.4));const sp=reduce?100:1/1.1;INVS.life+=Math.sign(INVS.want-INVS.life)*Math.min(Math.abs(INVS.want-INVS.life),dt*sp);
-  const o=INVS.o||M.calc(INVS.P);if(INVS.life>0.01)M.step(INVS.st,INVS.P,o,dt);else if(M.id==='screw'||M.id==='orni'||M.id==='motor'||M.id==='arch'||M.id==='hero'||M.id==='clock'||M.id==='cradle')M.step(INVS.st,INVS.P,o,dt*0.15);
+  const o=INVS.o||M.calc(INVS.P);if(INVS.life>0.01&&!INVS.paused)M.step(INVS.st,INVS.P,o,dt);
   const k=INVS.life;c.clearRect(0,0,IW,IH);
   if(k<0.999){c.save();c.globalAlpha=1-k;c.drawImage(parchment(),0,0);if(INVS.reveal<1){c.beginPath();c.rect(0,0,IW*INVS.reveal,IH);c.clip();}
     M.draw(c,inkPen(c,'bp'),INVS.P,o,t,INVS.st);c.fillStyle='rgba(74,47,23,.85)';c.font='italic 700 22px Georgia, serif';c.textAlign='left';c.fillText(M.name,26,44);c.font='italic 16px Georgia, serif';c.fillText(M.who+', '+M.year,26,66);if(M.note)mirrorNote(c,IW-170,IH-34,M.note,18);
@@ -3989,7 +4039,7 @@ function invOpen(on){INVS.on=on;document.body.classList.toggle('lab-inv',on);doc
   sec.innerHTML='<div class="subtabs" id="linvs" role="group" aria-label="Machines">'+INV.map(m=>'<button type="button" data-m="'+m.id+'" aria-pressed="false">'+esc(m.name)+'</button>').join('')+'</div>'+
     '<section class="card linv-head"><div class="small" id="linv-who"></div><h2 id="linv-name"></h2><p class="small" id="linv-story"></p></section>'+
     '<div class="screen"><canvas class="pad" id="linv-cv" width="'+IW+'" height="'+IH+'" aria-label="The machine, as a sketch or working"></canvas></div>'+
-    '<div class="row"><button type="button" class="primary" id="linv-life">✨ Bring it to life</button><button type="button" id="linv-act" hidden></button></div>'+
+    '<div class="row"><button type="button" class="primary" id="linv-life">✨ Bring it to life</button><button type="button" id="linv-pause" hidden>⏸ Pause</button><button type="button" id="linv-act" hidden></button></div>'+
     '<p class="small" id="linv-status" role="status"></p><section class="card"><h3>Change it</h3><div id="linv-params" class="invps"></div></section>'+
     '<section class="card"><h3>The numbers</h3><div class="stats" id="linv-stats"></div><details open><summary>How the numbers come out</summary><div class="formbox" id="linv-form"></div></details></section>'+
     '<section class="card linv-wow"><h3>Did you know?</h3><p id="linv-wow"></p></section>';
@@ -3998,14 +4048,15 @@ function invOpen(on){INVS.on=on;document.body.classList.toggle('lab-inv',on);doc
   cats.querySelectorAll('button').forEach(x=>{if(x!==b)x.addEventListener('click',()=>{if(INVS.on){invOpen(false);if(typeof labShow==='function')labShow();}});});
   sec.querySelectorAll('#linvs button').forEach(x=>x.addEventListener('click',()=>invPick(x.dataset.m)));
   $('linv-life').addEventListener('click',()=>{invMode(INVS.want?0:1);buzz(10);if(INVS.want){try{jingle('good');}catch(e){}}});
-  $('linv-act').addEventListener('click',()=>{const M=INV.find(m=>m.id===INVS.id);if(M.action){if(!INVS.want)invMode(1);M.action[1](INVS.st);}});
+  $('linv-act').addEventListener('click',()=>{const M=INV.find(m=>m.id===INVS.id);if(M.action){if(!INVS.want)invMode(1);invPause(false);M.action[1](INVS.st);}});
+  $('linv-pause').addEventListener('click',()=>invPause(!INVS.paused));
   $('linv-cv').addEventListener('click',()=>{if(!INVS.want)invMode(1);});
   // a card on Home that opens the workshop
   const strip=document.querySelector('.gstrip-wrap');if(strip){const h=document.createElement('section');h.className='card invhome';h.id='invhome';h.setAttribute('role','button');h.tabIndex=0;
     h.innerHTML='<canvas width="600" height="220" aria-hidden="true"></canvas><div><div class="rk-k">New in Motion lab</div><h3>Leonardo, Tesla and friends</h3><p class="small">Their famous machine drawings come to life. Change the numbers and see if they really work.</p></div>';
     strip.parentNode.insertBefore(h,strip);const go=()=>{show('lab');setTimeout(()=>labOpenCat('inv'),60);};h.addEventListener('click',go);h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
     const cc=h.querySelector('canvas').getContext('2d');cc.save();cc.scale(600/IW,220/IH*1.9);cc.drawImage(parchment(),0,0);cc.restore();cc.save();cc.scale(0.62,0.62);cc.translate(-30,-150);const M=INV[0],P0={};M.params.forEach(q=>P0[q[0]]=q[5]);M.draw(cc,inkPen(cc,'bp'),P0,M.calc(P0),0,{a:0.6,y:0});cc.restore();
-    cc.save();cc.translate(330,-30);cc.scale(0.55,0.55);const M2=INV[4],P2={};M2.params.forEach(q=>P2[q[0]]=q[5]);liveBg(cc);M2.draw(cc,inkPen(cc,'live'),P2,M2.calc(P2),3,{});cc.restore();
+    cc.save();cc.translate(330,-30);cc.scale(0.55,0.55);const M2=INV.find(m=>m.id==='coil'),P2={};M2.params.forEach(q=>P2[q[0]]=q[5]);liveBg(cc);M2.draw(cc,inkPen(cc,'live'),P2,M2.calc(P2),3,{});cc.restore();
     cc.fillStyle='rgba(74,47,23,.8)';cc.font='italic 700 22px Georgia, serif';cc.fillText('1489',16,200);cc.fillStyle='#e9d5ff';cc.fillText('1891',520,200);}})();
 window.__inv={INV,INVS,invOpen,invPick,invMode};
 
@@ -4022,7 +4073,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   hub.querySelectorAll('.lhub-t').forEach(b=>b.addEventListener('click',()=>labOpenCat(b.dataset.c)));$('lall').addEventListener('click',()=>labHub());
   if(view==='lab')labHub();})();
 // the version number, at the bottom of the Menu, so it is easy to tell which update is installed
-(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 41';m.appendChild(p);})();
+(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 42';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
