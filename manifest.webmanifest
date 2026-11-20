@@ -33,5 +33,13 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "prefer_related_applications": true,
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "app.formulaplay.twa",
+      "url": "https://play.google.com/store/apps/details?id=app.formulaplay.twa"
+    }
   ]
 }

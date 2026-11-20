@@ -596,6 +596,9 @@ body.lab-hub #v-lab>:not(#lhub){display:none!important}
 body[data-view=arcade] .aurora{display:none!important}
 body[data-view=arcade] header{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 body[data-view=arcade] #v-arcade canvas.pad{will-change:contents}
+
+/* the browser-only notice steps aside while a game is on screen */
+body[data-view="arcade"] #webnote{display:none}
 </style>
 </head>
 <body data-view="home">
@@ -2526,6 +2529,19 @@ document.querySelectorAll('#qmodes button').forEach(b=>b.addEventListener('click
 function goFull(force){try{if(!force)return;const d=document.documentElement;if(document.fullscreenElement||!d.requestFullscreen||!matchMedia('(pointer:coarse)').matches)return;const r=d.requestFullscreen({navigationUI:'hide'});window.__fsP=r;if(r&&r.catch)r.catch(()=>{});}catch(e){}}
 function leaveFull(){try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock();}catch(e){}try{const g=$('g3tools');if(g)g.remove();document.querySelectorAll('body>.g3drawer,body>.g3scrim').forEach(n=>n.remove());if(document.fullscreenElement&&document.exitFullscreen){const r=document.exitFullscreen();if(r&&r.catch)r.catch(()=>{});}}catch(e){}}
 
+// ---------- a notice for people who open the web page in a phone browser instead of the Play Store app
+(function(){try{
+  const inApp=(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches))||(document.referrer||'').indexOf('android-app://')===0||navigator.standalone===true;
+  if(inApp||!/Android/i.test(navigator.userAgent))return;
+  let off=false;try{off=localStorage.getItem('fp_webnote')==='1';}catch(e){}
+  if(off)return;
+  const b=document.createElement('div');b.id='webnote';b.setAttribute('role','note');
+  b.style.cssText='position:relative;z-index:50;margin:0;padding:10px 44px 10px 14px;background:#fde68a;color:#1f2937;font:600 14px/1.35 system-ui,sans-serif;border-bottom:1px solid #f59e0b';
+  b.innerHTML='You are on the web page. <span style="font-weight:400">Testing Formula Play? Install it from the Google Play test link instead; only that version counts.</span> <a href="https://play.google.com/apps/testing/app.formulaplay.twa" style="color:#1d4ed8;white-space:nowrap">Open the test link</a><button type="button" aria-label="Hide this notice" style="position:absolute;right:6px;top:6px;width:32px;height:32px;border:0;background:transparent;font-size:20px;line-height:1;color:#1f2937">×</button>';
+  b.querySelector('button').addEventListener('click',()=>{b.remove();try{localStorage.setItem('fp_webnote','1');}catch(e){}});
+  document.body.insertBefore(b,document.body.firstChild);
+}catch(e){}})();
+
 // ---- smooth sliders everywhere: the thumb follows the finger exactly, the app reads exact snapped values,
 // updates are bundled to one per screen refresh, and heavy screens get breathing room so the finger never waits
 (function(){const VD=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');if(!VD)return;
@@ -4086,7 +4102,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   hub.querySelectorAll('.lhub-t').forEach(b=>b.addEventListener('click',()=>labOpenCat(b.dataset.c)));$('lall').addEventListener('click',()=>labHub());
   if(view==='lab')labHub();})();
 // the version number, at the bottom of the Menu, so it is easy to tell which update is installed
-(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 44';m.appendChild(p);})();
+(function(){const m=$('v-menu');if(!m)return;const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 45';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
