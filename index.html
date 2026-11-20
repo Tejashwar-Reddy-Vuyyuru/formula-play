@@ -3857,22 +3857,6 @@ const INV=[
       c.strokeStyle='rgba(125,211,252,.35)';c.lineWidth=2;for(let i=0;i<9;i++){const x=cx-rw*0.8+i*rw*0.2,yy=yb-60+((t*120*Math.min(1,o.lift*5+0.2)+i*37)%120);c.beginPath();c.moveTo(x,yy);c.lineTo(x,yy+18);c.stroke();}}},
   step(st,p,o,dt){st.a=(st.a||0)+dt*(0.6+Math.min(6,o.P/300));const tgt=o.lift>=1?Math.min(280,(st.y||0)+dt*60*(o.lift-0.9)):(Math.abs(Math.sin(st.a*2))*Math.min(14,o.lift*400));st.y=o.lift>=1?tgt:tgt;}},
 
- {id:'orni',who:'Leonardo da Vinci',year:'about 1485',name:'Ornithopter',note:'uccello · ali che battono',
-  story:'Leonardo studied birds for years and drew a flying machine where a pilot lies flat and pumps big bat-like wings with arms and legs.',
-  params:[['b','Wing span',4,16,0.5,10,'m'],['f','Flaps per second',0.3,3,0.1,1.2,'Hz'],['th','Flap angle',20,90,1,60,'°'],['m','Pilot and frame',60,250,5,130,'kg']],
-  calc(p){const S=p.b*p.b/5,th=p.th*Math.PI/180,v=2*th*p.f*(0.75*p.b/2),L=0.5*RHO*v*v*S*1.2,W=p.m*G0,Pw=0.5*RHO*1.6*S*v*v*v/4;
-    return {S,v,L,W,Pw,lift:L/W,rows:[['Wing area',f1(S,1)+' m²'],['Wing speed',f1(v,1)+' m/s'],['Lift',f1(L,0)+' N vs weight '+f1(W,0)+' N'],['Power to flap',f1(Pw,0)+' W']],
-      formula:['Wing speed v ≈ 2·θ·f·(¾ of half span) = '+f1(v,2)+' m/s','Lift L = ½·ρ·v²·S·C = ½·1.225·'+f1(v,1)+'²·'+f1(S,1)+'·1.2 = '+f1(L,0)+' N'],
-      status:L>=W&&Pw<=400?'🕊️ It flies, and a strong person could flap it!':L>=W?'It could lift, but flapping needs '+f1(Pw,0)+' W. A fit person keeps up about 100 W.':'Lift is '+f1(L/W*100,0)+'% of the weight. Flap faster or wider.',
-      wow:'A fit person can keep up about 100 watts. Human-powered flight finally happened in 1977 with the Gossamer Condor, using light wings and a propeller instead of flapping.'};},
-  draw(c,P,p,o,t,st){const cx=360,cy=270,half=Math.min(330,p.b*20),fl=Math.sin(st.a||0)*p.th*Math.PI/180*0.6;
-    [-1,1].forEach(s=>{c.save();c.translate(cx,cy);c.rotate(-s*fl);P.shape(()=>{c.moveTo(0,0);c.quadraticCurveTo(s*half*0.5,-70,s*half,-20);c.quadraticCurveTo(s*half*0.8,40,s*half*0.55,30);c.quadraticCurveTo(s*half*0.3,50,0,20);c.closePath();},'rgba(226,210,170,.92)');
-      for(let k=1;k<5;k++){P.line(0,0,s*half*k/5,-40+k*8,'#8b6b47',2);}c.restore();});
-    P.shape(()=>{c.ellipse(cx,cy+18,80,22,0,0,TAU);},'#7c5a34');P.circle(cx+70,cy+8,13,'#f5c9a0');
-    P.dim(cx-half,cy+90,cx+half,cy+90,'span '+p.b.toFixed(1)+' m');
-    if(!P.bp){P.tag(40,60,'Lift '+f1(o.L,0)+' N','#4ade80');P.tag(40,94,'Weight '+f1(o.W,0)+' N','#f87171');P.tag(470,60,'Flap power '+f1(o.Pw,0)+' W','#facc15');P.tag(470,94,'Wing speed '+f1(o.v,1)+' m/s','#7dd3fc');}},
-  step(st,p,o,dt){st.a=(st.a||0)+dt*TAU*p.f;}},
-
  {id:'bow',who:'Leonardo da Vinci',year:'about 1488',name:'Giant crossbow',note:'balestra gigante',
   story:'A war machine 24 metres wide on six wheels. Its bow was built in thin layers so it would bend without snapping, a trick still used in springs today.',
   params:[['F','Pull force',5,80,1,24,'kN'],['d','Draw length',0.5,2.5,0.1,1.4,'m'],['m','Stone or bolt mass',1,40,0.5,10,'kg'],['ang','Launch angle',5,60,1,35,'°']],
@@ -4045,7 +4029,309 @@ const INV=[
     for(let i=0;i<n;i++){const hx=cx+(i-2)*rb*2,ang=i<p.n?aL:i>=n-p.n?aR:0,bx=hx+Math.sin(ang)*Ls,by=ty+Math.cos(ang)*Ls;P.line(hx,ty,bx,by,'#cbd5e1',1.5);
       c.save();if(!P.bp){const g=c.createRadialGradient(bx-8,by-8,3,bx,by,rb);g.addColorStop(0,'#fff');g.addColorStop(0.4,'#cbd5e1');g.addColorStop(1,'#475569');c.fillStyle=g;c.beginPath();c.arc(bx,by,rb,0,TAU);c.fill();}else P.circle(bx,by,rb,'#94a3b8');c.restore();}
     if(P.bp)P.dim(cx-260,ty+Ls,cx-260,ty+Ls-Math.min(120,p.h*6),'h = '+p.h+' cm');else{P.tag(40,60,'Impact speed '+f1(o.v,2)+' m/s','#7dd3fc');P.tag(40,94,'Momentum '+f1(o.pm,3)+' kg·m/s','#facc15');}},
-  step(st,p,o,dt){if(st.amp==null)st.amp=1;if(st.amp<0.04){st.amp=0;return;}st.amp*=Math.exp(-dt/5);const prev=st.a||0;st.a=prev+dt;const T=TAU*Math.sqrt(0.3/G0)*1.4,q0=(prev%T)/T,q1=(st.a%T)/T;if((q0<0.25&&q1>=0.25)||(q0<0.75&&q1>=0.75))invClack(st.amp,240);},action:['↺ Lift again',st=>{st.amp=1;st.a=0;}]}];
+  step(st,p,o,dt){if(st.amp==null)st.amp=1;if(st.amp<0.04){st.amp=0;return;}st.amp*=Math.exp(-dt/5);const prev=st.a||0;st.a=prev+dt;const T=TAU*Math.sqrt(0.3/G0)*1.4,q0=(prev%T)/T,q1=(st.a%T)/T;if((q0<0.25&&q1>=0.25)||(q0<0.75&&q1>=0.75))invClack(st.amp,240);},action:['↺ Lift again',st=>{st.amp=1;st.a=0;}]},
+
+ {id:'ascrew',who:'Archimedes',year:'about 250 BC',name:'Water screw',note:'',
+  story:'A screw inside a sloping tube. Turn the handle and each turn of the screw carries a pocket of water uphill. Farmers have watered their fields with it for over 2,000 years.',
+  params:[['D','Screw width',0.1,1,0.05,0.4,'m'],['L','Screw length',2,8,0.5,4,'m'],['ang','Tilt',20,45,1,30,'°'],['rpm','Turns per minute',10,120,5,40,'']],
+  calc(p){const V=Math.PI*Math.pow(p.D/2,2)*p.D*0.25,Q=V*p.rpm/60,h=p.L*Math.sin(p.ang*Math.PI/180),Pw=1000*G0*Q*h;
+    return {V,Q,h,Pw,rows:[['Water in each turn',f1(V*1000,1)+' L'],['Flow',f1(Q*1000,1)+' L/s'],['Lifted by',f1(h,2)+' m'],['Power needed',f1(Pw,0)+' W']],
+      formula:['Each turn carries V ≈ ¼·π·(D/2)²·D = '+f1(V*1000,1)+' L','Flow Q = V · turns per second = '+f1(Q*1000,1)+' L/s','Power P = ρ·g·Q·h = 1000·9.81·'+Q.toFixed(4)+'·'+h.toFixed(2)+' = '+f1(Pw,0)+' W'],
+      status:Pw<=100?'💧 One person can turn it all day (a person gives about 100 W).':'It needs the work of '+f1(Pw/100,1)+' people, or an ox, or a motor.',
+      wow:'Screws like this still lift water on farms and in sewage works. Run backwards, the same screw makes electricity from a river.'};},
+  draw(c,P,p,o,t,st){const a=p.ang*Math.PI/180,x0=150,y0=410,Lp=Math.min(470,200+p.L*40),w=Math.min(44,16+p.D*36),x1=x0+Math.cos(a)*Lp,y1=y0-Math.sin(a)*Lp,ph=st.a||0,pit=Math.max(34,w*1.5);
+    P.shape(()=>{c.rect(0,418,330,102);},'#0ea5e9');
+    P.shape(()=>{c.rect(Math.min(IW-190,x1-6),y1+34,190,46);},'#78350f');if(!P.bp){c.fillStyle='#38bdf8';c.fillRect(Math.min(IW-190,x1-6)+6,y1+40,178,20);}
+    c.save();c.translate(x0,y0);c.rotate(-a);
+    if(!P.bp){for(let k=-1;k<Lp/pit+1;k++){const xk=(k+((ph/TAU)%1))*pit;if(xk<4||xk>Lp-8)continue;c.fillStyle='rgba(56,189,248,.85)';c.beginPath();c.ellipse(xk,w*0.48,pit*0.3,w*0.36,0,0,TAU);c.fill();}}
+    P.shape(()=>{c.rect(0,-w,Lp,2*w);},'rgba(161,98,7,.28)',{nohatch:true});
+    c.strokeStyle=P.bp?'#4a2f17':'#fde68a';c.lineWidth=P.bp?1.6:3.5;c.beginPath();for(let x=0;x<=Lp;x+=4){const y=w*0.92*Math.sin(x/pit*TAU-ph);if(x===0)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();
+    P.line(-14,0,Lp+34,0,'#92400e',5);const hx=Lp+34,hr=20;P.line(hx,0,hx+Math.cos(ph)*hr*0.3,Math.sin(ph)*hr,'#fde68a',5);P.circle(hx+Math.cos(ph)*hr*0.3,Math.sin(ph)*hr,6,'#f59e0b');
+    c.restore();
+    if(!P.bp){c.strokeStyle='rgba(56,189,248,.9)';c.lineWidth=5;c.beginPath();c.moveTo(x1+4,y1+4);c.quadraticCurveTo(x1+26,y1+10,x1+30,y1+40);c.stroke();
+      P.tag(40,60,'Flow '+f1(o.Q*1000,1)+' L/s','#7dd3fc');P.tag(40,94,'Lift '+f1(o.h,2)+' m','#4ade80');P.tag(470,60,'Power '+f1(o.Pw,0)+' W','#facc15');}
+    else{P.dim(x0+30,y0+40,x1+30,y1+40,'L = '+p.L.toFixed(1)+' m');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*Math.min(7,0.6+p.rpm/20);}},
+
+ {id:'wheel',who:'Vitruvius',year:'about 25 BC',name:'Water wheel',note:'',
+  story:'A Roman engineer described a wheel turned by falling water. It was the first machine to do heavy work without muscles, and it ran day and night.',
+  params:[['Q','Water flow',50,1000,10,300,'L/s'],['h','Height the water falls',1,8,0.1,3,'m'],['eta','How much it catches',30,85,1,65,'%']],
+  calc(p){const Q=p.Q/1000,Pin=1000*G0*Q*p.h,Pw=Pin*p.eta/100;
+    return {Pin,Pw,rows:[['Water falling',p.Q+' L/s'],['Energy in the water',f1(Pin,0)+' W'],['Useful power',f1(Pw,0)+' W'],['Same as',f1(Pw/100,0)+' people working']],
+      formula:['P = η·ρ·g·Q·h','P = '+(p.eta/100).toFixed(2)+'·1000·9.81·'+Q.toFixed(2)+'·'+p.h.toFixed(1)+' = '+f1(Pw,0)+' W'],
+      status:'🌊 This wheel does the work of '+f1(Pw/100,0)+' people, and it never gets tired.',
+      wow:'For 2,000 years water wheels ground flour, sawed wood and hammered iron. Modern water turbines catch over 90% of the energy.'};},
+  draw(c,P,p,o,t,st){const cx=400,cy=270,R=Math.min(165,70+p.h*20),a=st.a||0;
+    P.shape(()=>{c.rect(0,cy+R-10,IW,IH-(cy+R-10));},'#0284c7');
+    P.shape(()=>{c.rect(30,cy-R-36,cx-30+10,14);},'#92400e');P.line(60,cy-R-22,60,cy+R-10,'#78350f',8);P.line(230,cy-R-22,230,cy+R-10,'#78350f',8);
+    if(!P.bp){c.fillStyle='#38bdf8';c.fillRect(30,cy-R-44,cx-20,8);for(let k=0;k<7;k++){const q=((t*1.6+k/7)%1);c.fillStyle='rgba(125,211,252,'+(0.9-q*0.5)+')';c.beginPath();c.arc(cx+12+q*30,cy-R-36+q*q*(R*1.2),5+q*3,0,TAU);c.fill();}}
+    P.line(cx,cy,cx-70,cy+R+40,'#78350f',9);P.line(cx,cy,cx+70,cy+R+40,'#78350f',9);
+    P.ring(cx,cy,R,'#a16207',9);P.ring(cx,cy,R*0.78,'#a16207',4);
+    for(let k=0;k<12;k++){const b=a+k*TAU/12,x=cx+Math.cos(b)*R,y=cy+Math.sin(b)*R;P.line(cx,cy,x,y,'#d6a76a',3);
+      c.save();c.translate(x,y);c.rotate(b+Math.PI/2);P.shape(()=>{c.rect(-16,-4,32,16);},'#b45309');c.restore();}
+    P.circle(cx,cy,16,'#78350f');
+    if(!P.bp){P.tag(40,60,'Power '+f1(o.Pw,0)+' W','#facc15');P.tag(40,94,'= '+f1(o.Pw/100,0)+' people','#4ade80');P.tag(470,60,'Fall '+p.h.toFixed(1)+' m · '+p.Q+' L/s','#7dd3fc');}
+    else P.dim(cx+R+26,cy-R,cx+R+26,cy+R,'h = '+p.h.toFixed(1)+' m');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*(0.35+Math.min(2.4,p.Q/350));}},
+
+ {id:'mill',who:'Dutch millwrights',year:'about 1600',name:'Windmill',note:'',
+  story:'Huge sails catch the wind and turn a shaft. Dutch mills pumped whole lakes dry and ground grain for cities, using nothing but moving air.',
+  params:[['v','Wind speed',2,20,0.5,8,'m/s'],['R','Sail length',3,15,0.5,10,'m'],['cp','How much it catches',10,45,1,25,'%']],
+  calc(p){const A=Math.PI*p.R*p.R,Pin=0.5*RHO*A*Math.pow(p.v,3),Pw=Pin*p.cp/100;
+    return {A,Pin,Pw,rows:[['Area the sails sweep',f1(A,0)+' m²'],['Power in the wind',f1(Pin,0)+' W'],['Power at the shaft',f1(Pw,0)+' W'],['Double the wind gives','8 × the power']],
+      formula:['P = ½·ρ·A·v³·Cp','P = ½·1.225·'+f1(A,0)+'·'+p.v+'³·'+(p.cp/100).toFixed(2)+' = '+f1(Pw,0)+' W'],
+      status:p.v<3?'Too little wind: the sails barely turn.':p.v>16?'🌪️ A storm! Millers took the cloth off the sails so the mill would not tear itself apart.':'🌬️ A good milling wind: about '+f1(Pw/1000,1)+' kW.',
+      wow:'No windmill can ever take more than 59% of the energy in the wind. This is called the Betz limit.'};},
+  draw(c,P,p,o,t,st){const cx=360,hy=205,Rp=Math.min(185,70+p.R*8),a=st.a||0;
+    if(!P.bp){for(let k=0;k<3;k++){const x=((t*p.v*6+k*290)%(IW+220))-110,y=70+k*46;c.fillStyle='rgba(255,255,255,.14)';c.beginPath();c.ellipse(x,y,70,18,0,0,TAU);c.ellipse(x+40,y-12,44,16,0,0,TAU);c.fill();}}
+    P.shape(()=>{c.rect(0,470,IW,50);},'#3f6212');
+    P.shape(()=>{c.moveTo(cx-66,470);c.lineTo(cx+66,470);c.lineTo(cx+36,hy+20);c.lineTo(cx-36,hy+20);c.closePath();},'#d6c2a4');
+    P.shape(()=>{c.moveTo(cx-42,hy+20);c.quadraticCurveTo(cx,hy-46,cx+42,hy+20);c.closePath();},'#7c2d12');
+    P.shape(()=>{c.rect(cx-16,420,32,50);},'#78350f');P.shape(()=>{c.rect(cx-12,330,24,30);},'#1e3a8a');
+    for(let k=0;k<4;k++){c.save();c.translate(cx,hy);c.rotate(a+k*TAU/4);P.shape(()=>{c.rect(22,-3,Rp-22,30);},'#fef3c7');P.line(0,0,Rp,0,'#78350f',5);
+      for(let q=1;q<5;q++){const x=22+(Rp-22)*q/5;P.line(x,-3,x,27,'#b45309',1.5);}c.restore();}
+    P.circle(cx,hy,11,'#451a03');
+    if(!P.bp){P.tag(40,60,'Wind '+p.v+' m/s','#7dd3fc');P.tag(40,94,'Shaft power '+f1(o.Pw,0)+' W','#facc15');}
+    else P.dim(cx,hy-Rp-14,cx+Rp,hy-Rp-14,'R = '+p.R.toFixed(1)+' m');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*Math.min(5.5,0.14*p.v);}},
+
+ {id:'pulley',who:'Archimedes',year:'about 250 BC',name:'Block and tackle',note:'',
+  story:'Loop one rope around several wheels and the load hangs from many strands at once. Each strand takes a share, so your pull becomes many times stronger.',
+  params:[['m','Load',50,2000,10,500,'kg'],['n','Ropes holding the load',1,8,1,4,''],['F','Your pull',50,1500,10,300,'N'],['mu','Friction lost per wheel',0,15,1,5,'%']],
+  calc(p){const eff=Math.pow(1-p.mu/100,p.n),need=p.m*G0/(p.n*eff),ok=p.F>=need;
+    return {eff,need,ok,rows:[['Load weighs',f1(p.m*G0,0)+' N'],['Pull needed',f1(need,0)+' N'],['Force multiplied by',f1(p.n*eff,1)+' ×'],['Pull 1 m of rope, load rises',f1(100/p.n,0)+' cm']],
+      formula:['Each rope shares the weight: pull = m·g / n','With friction: pull = m·g / (n·η) = '+p.m+'·9.81 / ('+p.n+'·'+eff.toFixed(2)+') = '+f1(need,0)+' N'],
+      status:ok?'⛓️ Up it goes! One person lifts '+p.m+' kg.':'Not enough: you need '+f1(need,0)+' N. Add more ropes or pull harder.',
+      wow:'The story goes that Archimedes pulled a fully loaded ship across the sand by himself, using pulleys like these.'};},
+  draw(c,P,p,o,t,st){const cx=330,ty=112,lift=o.ok?(st.y||0):0,by=330-lift,bs=Math.min(120,44+Math.sqrt(p.m)*1.8),n=p.n;
+    P.shape(()=>{c.rect(150,54,400,20);},'#78350f');P.line(cx,74,cx,ty-24,'#a16207',6);
+    for(let k=0;k<n;k++){const x=n===1?cx:cx-26+52*k/(n-1);P.line(x,ty,x,by,'#fde68a',2.5);}
+    P.circle(cx,ty,28,'#94a3b8');P.circle(cx,ty,7,'#334155');P.circle(cx,by,28,'#94a3b8');P.circle(cx,by,7,'#334155');
+    P.line(cx,by+28,cx,by+46,'#a16207',6);P.shape(()=>{c.rect(cx-bs/2,by+46,bs,bs*0.8);},'#64748b');
+    if(!P.bp){c.fillStyle='#fff';c.font='700 16px '+css('--sans');c.textAlign='center';c.fillText(p.m+' kg',cx,by+46+bs*0.45);}
+    const hy=250+lift*0.9;P.line(cx+28,ty,540,hy,'#fde68a',2.5);
+    P.circle(566,hy-46,15,'#f5c9a0');P.line(566,hy-31,566,hy+44,'#1e3a8a',9);P.line(566,hy-16,540,hy,'#f5c9a0',6);P.line(566,hy+44,552,hy+100,'#1e293b',7);P.line(566,hy+44,582,hy+100,'#1e293b',7);
+    P.line(0,470,IW,470,'#334155',2);
+    if(!P.bp){P.tag(40,130,'Pull needed '+f1(o.need,0)+' N',o.ok?'#4ade80':'#f87171');P.tag(40,164,'Your pull '+p.F+' N','#7dd3fc');P.tag(40,198,'Force × '+f1(p.n*o.eff,1),'#facc15');}
+    else P.dim(cx+bs/2+20,by+46,cx+bs/2+20,by+46+bs*0.8,'m = '+p.m+' kg');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;st.y=o.ok?70+70*Math.sin(st.a*1.1-1.5):0;}},
+
+ {id:'loco',who:'George and Robert Stephenson',year:'1829',name:'Steam locomotive “Rocket”',note:'',
+  story:'Steam pushes a piston, the piston turns the wheels, and the wheels pull a train. The Rocket won a famous race in 1829 and started the age of railways.',
+  params:[['pk','Boiler pressure',100,600,10,350,'kPa'],['d','Piston width',0.1,0.4,0.01,0.2,'m'],['s','Piston stroke',0.2,0.6,0.01,0.43,'m'],['D','Wheel height',0.8,2,0.1,1.4,'m'],['m','Train mass',5,60,1,17,'t']],
+  calc(p){const F=0.85*(p.pk*1000)*p.d*p.d*p.s/p.D,a=F/(p.m*1000),t30=8.33/a;
+    return {F,a,t30,rows:[['Pulling force',f1(F,0)+' N'],['Acceleration',f1(a,2)+' m/s²'],['Time to reach 30 km/h',f1(t30,0)+' s'],['Wheel turns in 1 km',f1(1000/(Math.PI*p.D),0)+'']],
+      formula:['Pull F ≈ 0.85·p·d²·s / D','F = 0.85·'+p.pk+' kPa·'+p.d.toFixed(2)+'²·'+p.s.toFixed(2)+' / '+p.D.toFixed(1)+' = '+f1(F,0)+' N','Acceleration a = F / m = '+f1(a,2)+' m/s²'],
+      status:'🚂 Bigger pistons and more pressure pull harder. Bigger wheels go faster but pull less.',
+      wow:'The Rocket reached about 48 km/h. Some people feared that travelling so fast would make it impossible to breathe.'};},
+  draw(c,P,p,o,t,st){const gy=430,r=Math.min(74,34+p.D*22),wx=440,wy=gy-r,a=st.a||0,off=(st.x||0)*34;
+    P.line(0,gy,IW,gy,'#94a3b8',5);for(let k=0;k<14;k++){const x=((k*60-off)%840+840)%840-60;P.shape(()=>{c.rect(x,gy+3,26,10);},'#78350f');}
+    if(!P.bp){for(let k=0;k<7;k++){const q=((t*0.5+k/7)%1);c.fillStyle='rgba(226,232,240,'+(0.55*(1-q))+')';c.beginPath();c.arc(516-q*150-(st.v||0)*q*6,150-q*110,12+q*34,0,TAU);c.fill();}}
+    P.shape(()=>{c.rect(498,150,34,110);},'#f8fafc');P.shape(()=>{c.rect(490,140,50,14);},'#e2e8f0');
+    P.shape(()=>{c.rect(230,250,300,84);},'#facc15');P.shape(()=>{c.rect(176,236,64,150);},'#1e293b');P.shape(()=>{c.rect(150,270,30,90);},'#92400e');
+    P.shape(()=>{c.rect(200,gy-58,330,16);},'#334155');
+    P.circle(250,gy-34,34,'#f59e0b');for(let q=0;q<6;q++){const b=a*r/34+q*TAU/6;P.line(250,gy-34,250+Math.cos(b)*32,gy-34+Math.sin(b)*32,'#fef3c7',2.5);}
+    P.circle(wx,wy,r,'#f59e0b');for(let q=0;q<10;q++){const b=a+q*TAU/10;P.line(wx,wy,wx+Math.cos(b)*(r-3),wy+Math.sin(b)*(r-3),'#fef3c7',3);}P.circle(wx,wy,10,'#78350f');
+    const px=wx+Math.cos(a)*r*0.55,py=wy+Math.sin(a)*r*0.55;c.save();c.translate(310,gy-104);c.rotate(0.42);P.shape(()=>{c.rect(-44,-15,88,30);},'#b45309');c.restore();
+    P.line(330,gy-96,px,py,'#e2e8f0',6);P.circle(px,py,7,'#475569');
+    if(!P.bp){P.tag(40,60,'Pull '+f1(o.F,0)+' N','#facc15');P.tag(40,94,'Speed '+f1((st.v||0)*3.6,0)+' km/h','#4ade80');P.tag(470,60,'Pressure '+p.pk+' kPa','#7dd3fc');}
+    else P.dim(wx+r+18,wy-r,wx+r+18,wy+r,'D = '+p.D.toFixed(1)+' m');},
+  step(st,p,o,dt){st.v=Math.min(13.4,(st.v||0)+o.a*dt*1.6);if(st.v>=13.4){st.w=(st.w||0)+dt;if(st.w>4){st.v=0;st.w=0;}}st.a=(st.a||0)+Math.min(9,st.v/(p.D/2)*0.3)*dt;st.x=(st.x||0)+st.v*dt;},action:['🚂 Start again',st=>{st.v=0;st.w=0;}]},
+
+ {id:'dynamo',who:'Michael Faraday',year:'1831',name:'Dynamo',note:'',
+  story:'Faraday found that moving a wire near a magnet makes electricity flow. Spin a coil between two magnets and you have a generator: this is how power stations work.',
+  params:[['N','Turns of wire',10,500,10,200,''],['B','Magnet strength',0.05,1,0.05,0.3,'T'],['A','Coil area',10,200,5,50,'cm²'],['rpm','Spin speed',60,3000,20,600,'rpm']],
+  calc(p){const A=p.A/1e4,w=p.rpm/60*TAU,Vp=p.N*p.B*A*w,Vr=Vp/Math.SQRT2,f=p.rpm/60;
+    return {Vp,Vr,f,w,rows:[['Peak voltage',f1(Vp,1)+' V'],['Steady (rms) voltage',f1(Vr,1)+' V'],['Frequency',f1(f,1)+' Hz'],['Lamp',Vr>=1.5?'lit':'dark']],
+      formula:['Peak voltage = N·B·A·ω','= '+p.N+'·'+p.B.toFixed(2)+'·'+A.toFixed(4)+'·'+f1(w,1)+' = '+f1(Vp,1)+' V','ω = 2π · turns per second = '+f1(w,1)+' rad/s'],
+      status:Vr>=1.5?'💡 The lamp glows. Spin faster and it gets brighter.':'Too little voltage for the lamp. Add turns, a stronger magnet or more speed.',
+      wow:'Almost all the electricity in the world is still made this way: steam, wind or water spins a coil near a magnet.'};},
+  draw(c,P,p,o,t,st){const a=st.a||0,cx=300,cy=250,hw=74*Math.cos(a),br=Math.max(0,Math.min(1,o.Vr/12))*(0.55+0.45*Math.abs(Math.sin(a)));
+    P.shape(()=>{c.rect(96,170,96,160);},'#dc2626');P.shape(()=>{c.rect(408,170,96,160);},'#2563eb');
+    c.save();c.fillStyle=P.bp?'#4a2f17':'#fff';c.font='800 34px '+css('--sans');c.textAlign='center';c.fillText('N',144,262);c.fillText('S',456,262);c.restore();
+    if(!P.bp){c.strokeStyle='rgba(148,163,184,.35)';c.lineWidth=1.5;for(let k=0;k<5;k++){const y=190+k*30;c.beginPath();c.moveTo(196,y);c.lineTo(404,y);c.stroke();}}
+    P.line(cx,150,cx,372,'#94a3b8',5);P.shape(()=>{c.rect(cx-Math.abs(hw),cy-58,Math.max(4,2*Math.abs(hw)),116);},'rgba(245,158,11,.55)');
+    P.line(cx-hw,cy-58,cx-hw,cy+58,'#f59e0b',6);P.line(cx+hw,cy-58,cx+hw,cy+58,'#b45309',6);
+    P.line(cx,372,cx,400,'#fbbf24',3);P.line(cx,400,610,400,'#fbbf24',3);P.line(610,400,610,214,'#fbbf24',3);P.line(cx,150,cx,120,'#fbbf24',3);P.line(cx,120,610,120,'#fbbf24',3);P.line(610,120,610,136,'#fbbf24',3);
+    if(!P.bp&&br>0.02){const g=c.createRadialGradient(610,174,4,610,174,40+90*br);g.addColorStop(0,'rgba(254,249,195,'+(0.95*br+0.05)+')');g.addColorStop(1,'rgba(254,240,138,0)');c.fillStyle=g;c.beginPath();c.arc(610,174,40+90*br,0,TAU);c.fill();}
+    P.circle(610,174,36,P.bp?'#fff':'rgba(254,243,199,'+(0.25+0.75*br)+')');P.shape(()=>{c.rect(596,206,28,18);},'#64748b');
+    c.strokeStyle=P.bp?'#4a2f17':'#4ade80';c.lineWidth=P.bp?1.4:3;c.beginPath();for(let x=60;x<=540;x+=4){const y=462-28*Math.sin((x-60)/52-a);if(x===60)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();P.line(60,462,540,462,'#475569',1);
+    if(!P.bp){P.tag(40,60,'Peak '+f1(o.Vp,1)+' V','#4ade80');P.tag(40,94,f1(o.f,1)+' Hz','#7dd3fc');P.tag(470,60,o.Vr>=1.5?'Lamp lit':'Lamp dark','#facc15');}
+    else P.dim(96,348,504,348,'N = '+p.N+' turns');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*Math.min(9,0.7+p.rpm/220);}},
+
+ {id:'scope',who:'Galileo Galilei',year:'1609',name:'Telescope',note:'',
+  story:'Two lenses in a tube. The big front lens gathers light and the small eyepiece spreads it out, so far things look close. Galileo pointed his at the sky and changed astronomy.',
+  params:[['fo','Front lens focal length',30,200,1,98,'cm'],['fe','Eyepiece focal length',1,10,0.5,5,'cm'],['D','Front lens width',1,10,0.1,3.7,'cm']],
+  calc(p){const M=p.fo/p.fe,gain=Math.pow(p.D/0.7,2),res=11.6/p.D,len=p.fo-p.fe;
+    return {M,gain,res,len,rows:[['Magnification',f1(M,0)+' ×'],['Light gathered, compared with your eye',f1(gain,0)+' ×'],['Tube length',f1(len,0)+' cm'],['Finest detail it can show',f1(res,1)+' arc-seconds']],
+      formula:['Magnification M = f front / f eyepiece = '+p.fo+' / '+p.fe+' = '+f1(M,1)+' ×','Light gain = (lens width / pupil width)² = ('+p.D+' / 0.7)² = '+f1(gain,0)+' ×'],
+      status:M>=20?'🔭 Strong enough to see the moons of Jupiter, as Galileo did in 1610.':M>=6?'🌙 You can see craters and mountains on the Moon.':'Barely more than your own eyes. Use a longer front lens.',
+      wow:'With about 20 × Galileo found four moons circling Jupiter: the first proof that not everything in the sky goes round the Earth.'};},
+  draw(c,P,p,o,t,st){const x0=70,y0=392,Lt=Math.min(360,130+p.fo*1.15),lw=Math.min(34,12+p.D*2.4),vx=560,vy=190,vr=104,mr=Math.min(520,5*o.M);
+    if(!P.bp){const rr=rng32(5);for(let k=0;k<60;k++){const x=rr()*IW,y=rr()*300,s=0.5+rr()*1.4;c.fillStyle='rgba(255,255,255,'+(0.35+0.4*Math.abs(Math.sin(t*1.5+k)))+')';c.fillRect(x,y,s,s);}}
+    P.shape(()=>{c.moveTo(x0,y0-lw*0.55);c.lineTo(x0+Lt,y0-lw);c.lineTo(x0+Lt,y0+lw);c.lineTo(x0,y0+lw*0.55);c.closePath();},'#7c2d12');
+    P.shape(()=>{c.ellipse(x0+Lt,y0,7,lw,0,0,TAU);},'#bae6fd');P.shape(()=>{c.ellipse(x0+8,y0,4,lw*0.5,0,0,TAU);},'#bae6fd');
+    [-0.7,0,0.7].forEach(k=>{P.line(IW,y0+k*lw-40,x0+Lt,y0+k*lw,'#fde68a',1.6);P.line(x0+Lt,y0+k*lw,x0+30,y0-k*lw*0.25,'#fde68a',1.6);});
+    P.line(x0+Lt*0.5,y0+lw,x0+Lt*0.5-40,470,'#78350f',7);P.line(x0+Lt*0.5,y0+lw,x0+Lt*0.5+40,470,'#78350f',7);P.line(0,470,IW,470,'#334155',2);
+    P.circle(x0-24,y0-4,13,'#f5c9a0');
+    c.save();c.beginPath();c.arc(vx,vy,vr,0,TAU);c.clip();if(!P.bp){c.fillStyle='#020617';c.fillRect(vx-vr,vy-vr,2*vr,2*vr);}
+    P.circle(vx,vy,mr,'#e5e7eb',{nohatch:true});[[-0.35,-0.3,0.2],[0.3,-0.1,0.26],[-0.1,0.38,0.16],[0.42,0.42,0.1],[-0.5,0.2,0.09]].forEach(([dx,dy,s])=>{P.circle(vx+dx*mr,vy+dy*mr,s*mr,'#9ca3af',{nohatch:true});});
+    c.restore();P.ring(vx,vy,vr,'#facc15',5);
+    P.circle(390,96,5,'#e5e7eb',{nohatch:true});
+    if(!P.bp){P.tag(40,60,'Magnifies '+f1(o.M,0)+' ×','#facc15');P.tag(40,94,'Light × '+f1(o.gain,0),'#7dd3fc');P.tag(340,128,'by eye','#e2e8f0');P.tag(vx-70,vy+vr+26,'through the telescope','#e2e8f0');}
+    else P.dim(x0,y0+lw+22,x0+Lt,y0+lw+22,'f = '+p.fo+' cm');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}},
+
+ {id:'press',who:'Blaise Pascal',year:'1653',name:'Hydraulic press',note:'',
+  story:'Pascal showed that a push on a trapped liquid is passed on equally everywhere. Push a narrow piston and a wide one rises with far greater force.',
+  params:[['F1','Your push',50,1000,10,200,'N'],['d1','Small piston width',1,10,0.5,2,'cm'],['d2','Big piston width',5,60,1,20,'cm'],['m','Load',100,20000,100,2000,'kg']],
+  calc(p){const k=Math.pow(p.d2/p.d1,2),F2=p.F1*k,W=p.m*G0,ok=F2>=W,pk=p.F1/(Math.PI*Math.pow(p.d1/200,2))/1000;
+    return {k,F2,W,ok,pk,rows:[['Pressure in the oil',f1(pk,0)+' kPa'],['Force multiplied by',f1(k,0)+' ×'],['Push on the big piston',f1(F2,0)+' N'],['Load weighs',f1(W,0)+' N']],
+      formula:['Same pressure everywhere: F1 / A1 = F2 / A2','F2 = F1·(d2 / d1)² = '+p.F1+'·('+p.d2+' / '+p.d1+')² = '+f1(F2,0)+' N'],
+      status:ok?'🛠️ It lifts '+p.m+' kg with a push of only '+p.F1+' N.':'Not enough yet: you need a push of '+f1(W/k,0)+' N, or a wider big piston.',
+      wow:'Car brakes, diggers and aeroplane landing gear all use this: a small push on oil becomes a huge force.'};},
+  draw(c,P,p,o,t,st){const w1=Math.min(56,16+p.d1*4),w2=Math.min(230,60+p.d2*2.9),xl=150,xr=600-w2,s=o.ok?(30+30*Math.sin((st.a||0)*1.3)):0,rise=s*0.55,yl=250+s,yr=330-rise,bs=Math.min(w2-10,60+Math.sqrt(p.m)*0.9);
+    if(!P.bp){c.fillStyle='#b45309';c.fillRect(xl,yl+16,w1,400-(yl+16)+50);c.fillRect(xr,yr+18,w2,400-(yr+18)+50);c.fillRect(xl,400,xr+w2-xl,54);}
+    P.line(xl,200,xl,454,'#94a3b8',5);P.line(xl+w1,200,xl+w1,400,'#94a3b8',5);P.line(xr,240,xr,400,'#94a3b8',5);P.line(xr+w2,240,xr+w2,454,'#94a3b8',5);P.line(xl,454,xr+w2,454,'#94a3b8',5);P.line(xl+w1,400,xr,400,'#94a3b8',5);
+    P.shape(()=>{c.rect(xl+2,yl,w1-4,16);},'#475569');P.line(xl+w1/2,yl,xl+w1/2,yl-70,'#475569',7);P.shape(()=>{c.rect(xl+w1/2-26,yl-82,52,14);},'#334155');
+    P.line(xl+w1/2,yl-140,xl+w1/2,yl-92,'#f87171',5);P.shape(()=>{c.moveTo(xl+w1/2-11,yl-98);c.lineTo(xl+w1/2+11,yl-98);c.lineTo(xl+w1/2,yl-82);c.closePath();},'#f87171');
+    P.shape(()=>{c.rect(xr+2,yr,w2-4,18);},'#475569');P.shape(()=>{c.rect(xr+w2/2-bs/2,yr-bs*0.6,bs,bs*0.6);},'#64748b');
+    if(!P.bp){c.fillStyle='#fff';c.font='700 16px '+css('--sans');c.textAlign='center';c.fillText(p.m+' kg',xr+w2/2,yr-bs*0.25);
+      P.tag(40,60,'Force × '+f1(o.k,0),'#facc15');P.tag(40,94,'Big piston '+f1(o.F2,0)+' N',o.ok?'#4ade80':'#f87171');P.tag(470,60,'Oil '+f1(o.pk,0)+' kPa','#7dd3fc');}
+    else{P.dim(xl,474,xl+w1,474,'d1');P.dim(xr,474,xr+w2,474,'d2 = '+p.d2+' cm');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}},
+
+ {id:'gears',who:'Greek engineers',year:'about 100 BC',name:'Gear train',note:'',
+  story:'Two toothed wheels that mesh. A small gear driving a big one turns it slowly but with great force, and the other way round gives speed. Clocks, bicycles and cars all rely on this.',
+  params:[['z1','Teeth on the driving gear',8,60,1,12,''],['z2','Teeth on the driven gear',8,120,1,48,''],['rpm','Driving speed',10,600,10,120,'rpm'],['T','Driving turning force',1,50,1,5,'N·m']],
+  calc(p){const r=p.z2/p.z1,out=p.rpm/r,Tq=p.T*r,Pw=p.T*p.rpm/60*TAU;
+    return {r,out,Tq,Pw,rows:[['Gear ratio',f1(r,2)+' : 1'],['Output speed',f1(out,1)+' rpm'],['Output turning force',f1(Tq,1)+' N·m'],['Power, the same in and out',f1(Pw,0)+' W']],
+      formula:['Ratio = teeth out / teeth in = '+p.z2+' / '+p.z1+' = '+f1(r,2),'Speed out = speed in / ratio = '+f1(out,1)+' rpm','Turning force out = force in · ratio = '+f1(Tq,1)+' N·m'],
+      status:r>1.01?'⚙️ Slower but stronger: '+f1(r,1)+' × the turning force.':r<0.99?'⚙️ Faster but weaker: '+f1(1/r,1)+' × the speed.':'Same speed, opposite direction.',
+      wow:'A 2,000-year-old Greek machine found in a shipwreck, the Antikythera mechanism, used more than 30 bronze gears to predict eclipses.'};},
+  draw(c,P,p,o,t,st){const mm=420/(p.z1+p.z2),r1=mm*p.z1/2,r2=mm*p.z2/2,x1=150+r1,x2=x1+r1+r2,cy=270,a1=st.a||0,a2=-a1*p.z1/p.z2+Math.PI/p.z2+Math.PI,th=Math.min(9,mm*0.9);
+    const gear=(x,y,r,z,a,col)=>{P.shape(()=>{for(let k=0;k<z;k++){const b=a+k*TAU/z,d=TAU/z;[[0,r-th],[0.12,r+th],[0.38,r+th],[0.5,r-th]].forEach(([q,rr],j)=>{const xx=x+Math.cos(b+q*d)*rr,yy=y+Math.sin(b+q*d)*rr;if(k===0&&j===0)c.moveTo(xx,yy);else c.lineTo(xx,yy);});}c.closePath();},col);
+      const sp=r>60?6:4;for(let k=0;k<sp;k++){const b=a+k*TAU/sp;P.line(x,y,x+Math.cos(b)*(r-th-4),y+Math.sin(b)*(r-th-4),'rgba(15,23,42,.45)',Math.max(2,r*0.07));}P.circle(x,y,Math.max(5,r*0.16),'#334155');};
+    gear(x2,cy,r2,p.z2,a2,'#d97706');gear(x1,cy,r1,p.z1,a1,'#fbbf24');
+    P.line(0,470,IW,470,'#334155',2);
+    if(!P.bp){P.tag(40,60,'In '+p.rpm+' rpm','#fbbf24');P.tag(40,94,'Out '+f1(o.out,1)+' rpm','#fb923c');P.tag(470,60,'Force × '+f1(o.r,2),'#4ade80');}
+    else{P.dim(x1-r1,cy+Math.max(r1,r2)+34,x1+r1,cy+Math.max(r1,r2)+34,p.z1+' teeth');P.dim(x2-r2,cy-r2-22,x2+r2,cy-r2-22,p.z2+' teeth');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*Math.min(5,0.35+p.rpm/90);}},
+
+ {id:'beak',who:'Nature’s idea: the kingfisher · engineer Eiji Nakatsu',year:'1997',name:'Kingfisher beak → bullet train',note:'',
+  story:'Japan’s bullet train made a loud boom when it rushed into tunnels. An engineer who loved bird-watching noticed how a kingfisher dives into water with almost no splash, and shaped the train’s nose like its beak.',
+  params:[['v','Train speed',150,350,5,300,'km/h'],['L','Nose length',2,16,0.5,15,'m'],['b','Train fills this much of the tunnel',10,30,1,20,'%']],
+  calc(p){const v=p.v/3.6,f=1-p.b/100,dp=0.5*RHO*v*v*(1-f*f)/(f*f),tr=p.L/v,st=dp/tr/1000,blunt=dp/(3/v)/1000;
+    return {v,dp,tr,st,rows:[['Air pressure jump in the tunnel',f1(dp,0)+' Pa'],['Time the jump takes to build',f1(tr*1000,0)+' ms'],['How sudden it is',f1(st,1)+' kPa/s'],['Compared with a blunt 3 m nose',f1(100*st/blunt,0)+' %']],
+      formula:['Pressure jump Δp ≈ ½·ρ·v²·(1−φ²)/φ²,  φ = open part of the tunnel = '+f.toFixed(2),'Δp = ½·1.225·'+f1(v,1)+'²·'+f1((1-f*f)/(f*f),2)+' = '+f1(dp,0)+' Pa','Suddenness = Δp ÷ (nose length ÷ speed) = '+f1(st,1)+' kPa/s  (a simple school model)'],
+      status:st>20?'💥 Tunnel boom! The air is squeezed too suddenly. Make the nose longer.':'🤫 Quiet. The long nose parts the air gently, like the beak parts water.',
+      wow:'The beak-shaped 500 Series train was quieter, about 10% faster and used about 15% less electricity. Its roof arm copied the silent feathers of an owl.'};},
+  draw(c,P,p,o,t,st){const gy=400,nose=Math.min(250,30+p.L*14),loud=Math.min(1,o.st/60),a=st.a||0,x=((a*90)%900)-330,tx=560;
+    P.shape(()=>{c.rect(0,gy,IW,IH-gy);},'#334155');P.line(0,gy,IW,gy,'#94a3b8',4);
+    P.shape(()=>{c.moveTo(tx,gy);c.lineTo(tx,150);c.quadraticCurveTo(tx+40,120,IW,120);c.lineTo(IW,gy);c.closePath();},'#475569');
+    const ty=gy-86;c.save();c.beginPath();c.rect(0,0,tx+2,IH);if(!P.bp)c.clip();
+    P.shape(()=>{c.moveTo(x-260,ty);c.lineTo(x,ty);c.quadraticCurveTo(x+nose*0.55,ty+6,x+nose,ty+70);c.lineTo(x+nose,gy-10);c.lineTo(x-260,gy-10);c.closePath();},'#e2e8f0');
+    P.shape(()=>{c.rect(x-260,ty+40,260,10);},'#2563eb');for(let k=0;k<5;k++)P.shape(()=>{c.rect(x-240+k*48,ty+14,30,18);},'#0f172a');
+    P.shape(()=>{c.moveTo(x+6,ty+12);c.quadraticCurveTo(x+nose*0.3,ty+14,x+nose*0.42,ty+34);c.lineTo(x+6,ty+34);c.closePath();},'#0f172a');
+    c.restore();
+    if(!P.bp){const near=Math.max(0,1-Math.abs(x+nose-tx)/260);for(let k=0;k<4;k++){const q=((t*1.2+k/4)%1);c.strokeStyle='rgba('+(loud>0.33?'248,113,113':'125,211,252')+','+((1-q)*(0.25+0.75*loud)*near)+')';c.lineWidth=2+6*loud;c.beginPath();c.arc(tx,gy-70,20+q*(60+150*loud),Math.PI*0.6,Math.PI*1.4);c.stroke();}}
+    // the kingfisher diving
+    const bx=110,by=150+16*Math.sin(t*1.5);c.save();c.translate(bx+30,by);c.rotate(0.5);c.scale(1.7,1.7);
+    P.shape(()=>{c.ellipse(0,0,30,15,0,0,TAU);},'#0ea5e9');P.shape(()=>{c.ellipse(4,5,18,8,0,0,TAU);},'#f97316');P.circle(26,-4,11,'#0284c7');
+    P.shape(()=>{c.moveTo(34,-9);c.lineTo(84,-1);c.lineTo(34,2);c.closePath();},'#1e293b');P.circle(29,-6,2.4,'#fff',{nohatch:true});
+    P.shape(()=>{c.moveTo(-8,-10);c.lineTo(-46,-30);c.lineTo(-24,0);c.closePath();},'#0369a1');c.restore();
+    P.shape(()=>{c.rect(40,262,230,22);},'#0ea5e9');
+    if(!P.bp){P.tag(300,170,'same shape as the beak','#facc15');P.tag(40,60,'Pressure jump '+f1(o.dp,0)+' Pa','#7dd3fc');P.tag(40,94,o.st>20?'Tunnel boom':'Quiet',o.st>20?'#f87171':'#4ade80');P.tag(470,60,'Nose '+p.L+' m','#facc15');}
+    else P.dim(Math.max(40,x),gy+26,Math.max(40,x)+nose,gy+26,'nose = '+p.L+' m');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt*(0.6+p.v/180);}},
+
+ {id:'sunflower',who:'Nature’s idea: the sunflower · numbers of Fibonacci',year:'1202',name:'Fibonacci sunflower',note:'',
+  story:'A sunflower places each new seed a fixed turn away from the last one. With a turn of about 137.5° the seeds pack perfectly, and the spirals you can count are Fibonacci numbers: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55…',
+  params:[['n','Seeds',50,900,10,500,''],['ang','Turn between seeds',130,145,0.1,137.5,'°']],
+  calc(p){const phi=(1+Math.sqrt(5))/2,gold=360/(phi*phi),off=Math.abs(p.ang-gold);let fa=1,fb=1;const fs=[1,1];while(fs.length<12){const x=fa+fb;fa=fb;fb=x;fs.push(x);}
+    return {gold,off,rows:[['Golden angle',gold.toFixed(2)+'°'],['Your angle',p.ang.toFixed(1)+'°'],['Away from golden',off.toFixed(2)+'°'],['Next Fibonacci numbers',fs.slice(6).join(', ')]],
+      formula:['Each number = the two before it:  1, 1, 2, 3, 5, 8, 13, 21, 34, 55','Golden ratio φ = (1 + √5) / 2 = 1.618','Golden angle = 360° / φ² = '+gold.toFixed(2)+'°','Seed k sits at angle k·'+p.ang.toFixed(1)+'° and distance c·√k'],
+      status:off<0.25?'🌻 Perfect packing: no gaps, no crowding. Count the spirals: 21, 34 or 55.':off<1.5?'Nearly there. Lines of gaps are opening up.':'Seeds line up in spokes and waste space. Move back towards 137.5°.',
+      wow:'Pine cones, pineapples and daisies use the same rule. A male bee’s family tree is Fibonacci too: 1 parent, 2 grandparents, 3, 5, 8…'};},
+  draw(c,P,p,o,t,st){const cx=360,cy=278,Rm=188,g=Math.min(1,((st.a||0)%14)/7),n=P.bp?p.n:Math.max(8,Math.round(p.n*g)),cc=Rm/Math.sqrt(p.n),ar=p.ang*Math.PI/180,rot=P.bp?0:(st.a||0)*0.05;
+    for(let k=0;k<26;k++){const b=k*TAU/26+rot*0.4;c.save();c.translate(cx+Math.cos(b)*(Rm+8),cy+Math.sin(b)*(Rm+8));c.rotate(b);P.shape(()=>{c.ellipse(22,0,34,13,0,0,TAU);},'#facc15');c.restore();}
+    P.circle(cx,cy,Rm+8,'#422006');
+    const cols=['#fbbf24','#f59e0b','#d97706','#fde68a','#b45309'];
+    for(let k=1;k<=n;k++){const r=cc*Math.sqrt(k),b=k*ar+rot,x=cx+Math.cos(b)*r,y=cy+Math.sin(b)*r,s=Math.max(1.6,cc*0.42);
+      if(P.bp){c.fillStyle='#4a2f17';c.beginPath();c.arc(x,y,Math.max(1.2,s*0.6),0,TAU);c.fill();}else{c.fillStyle=cols[k%5];c.beginPath();c.arc(x,y,s,0,TAU);c.fill();}}
+    if(!P.bp){P.tag(40,60,'Turn '+p.ang.toFixed(1)+'°',o.off<0.25?'#4ade80':'#f87171');P.tag(40,94,n+' seeds','#facc15');P.tag(470,60,'Golden '+o.gold.toFixed(1)+'°','#7dd3fc');}
+    else P.dim(cx,cy+Rm+40,cx+Rm,cy+Rm+40,p.n+' seeds');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;},action:['🌻 Grow again',st=>{st.a=0;}]},
+
+ {id:'comb',who:'Nature’s idea: honey bees',year:'millions of years old',name:'Honeycomb',note:'',
+  story:'Only three regular shapes cover a flat surface with no gaps: triangles, squares and hexagons. Bees build hexagons, the one that holds the most honey for the least wax.',
+  params:[['s','Cell shape: 1 triangle · 2 square · 3 hexagon',1,3,1,3,''],['A','Cell opening area',10,60,1,25,'mm²'],['d','Cell depth',5,15,0.5,11,'mm'],['w','Wall thickness',0.05,0.2,0.01,0.07,'mm']],
+  calc(p){const k=[4.559,4,3.722],nm=['Triangle','Square','Hexagon'],r=Math.sqrt(p.A),per=k.map(x=>x*r),i=p.s-1,wax=per[i]/2*p.d*p.w,honey=p.A*p.d/1000;
+    return {per,i,wax,rows:[['Triangle: wall round one cell',f1(per[0],1)+' mm'],['Square: wall round one cell',f1(per[1],1)+' mm'],['Hexagon: wall round one cell',f1(per[2],1)+' mm'],[nm[i]+' cell: wax used',f1(wax,2)+' mm³'],['Honey it holds',f1(honey,2)+' mL']],
+      formula:['Same area A, different wall length:','Triangle 4.56·√A   ·   Square 4·√A   ·   Hexagon 3.72·√A','Each wall is shared by two cells: wax = ½·wall·depth·thickness = '+f1(wax,2)+' mm³'],
+      status:i===2?'🐝 The hexagon wins: least wax for the same honey.':nm[i]+'s need '+f1(100*(per[i]/per[2]-1),0)+'% more wax than hexagons for the same honey.',
+      wow:'Bees eat about 8 g of honey to make 1 g of wax, so saving wax matters. Aeroplane floors and satellite panels copy the honeycomb: light but very stiff.'};},
+  draw(c,P,p,o,t,st){const A=2700,s=p.s,wall=P.bp?'#4a2f17':'#92400e',fill='#f59e0b',lw=P.bp?1.5:Math.max(2.5,p.w*40);
+    c.save();c.beginPath();c.rect(70,120,580,350);c.clip();if(!P.bp){c.fillStyle='#fbbf24';c.fillRect(70,120,580,350);}
+    c.strokeStyle=wall;c.lineWidth=lw;c.lineJoin='round';
+    const cell=(pts,k)=>{c.beginPath();pts.forEach((q,j)=>j?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();if(!P.bp){c.fillStyle=(k%5===0)?'#fde68a':(k%3===0?'#d97706':fill);c.fill();}c.stroke();};
+    if(s===2){const a=Math.sqrt(A);let k=0;for(let y=110;y<480;y+=a)for(let x=60;x<660;x+=a)cell([[x,y],[x+a,y],[x+a,y+a],[x,y+a]],k++*7+((y|0)%3));}
+    else if(s===1){const a=Math.sqrt(4*A/Math.sqrt(3)),h=a*Math.sqrt(3)/2;let k=0,row=0;for(let y=110;y<480;y+=h,row++)for(let x=60-a;x<660;x+=a){const ox=(row%2)*a/2;cell([[x+ox,y+h],[x+ox+a/2,y],[x+ox+a,y+h]],k++*3+row);cell([[x+ox+a/2,y],[x+ox+a*1.5,y],[x+ox+a,y+h]],k++*5+row);}}
+    else{const a=Math.sqrt(2*A/(3*Math.sqrt(3))),w=a*Math.sqrt(3);let k=0,row=0;for(let y=100;y<500;y+=a*1.5,row++)for(let x=50;x<680;x+=w){const ox=(row%2)*w/2,pts=[];for(let j=0;j<6;j++){const b=Math.PI/6+j*Math.PI/3;pts.push([x+ox+Math.cos(b)*a,y+Math.sin(b)*a]);}cell(pts,k++*7+row*3);}}
+    for(let k=0;k<3;k++){const b=(st.a||0)*(0.5+k*0.13)+k*2.1,bx=360+Math.cos(b)*(150+k*30),by=295+Math.sin(b*1.3)*(90+k*14),fl=Math.sin(t*40+k);
+      c.save();c.translate(bx,by);c.rotate(Math.atan2(Math.cos(b*1.3)*1.3*(90+k*14),-Math.sin(b)*(150+k*30)));
+      if(!P.bp){c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.ellipse(-2,-9-fl*2,8,5,0.5,0,TAU);c.ellipse(-2,9+fl*2,8,5,-0.5,0,TAU);c.fill();}
+      P.shape(()=>{c.ellipse(0,0,13,7.5,0,0,TAU);},'#facc15',{nohatch:true});P.line(-3,-7,-3,7,'#1c1917',3);P.line(4,-6,4,6,'#1c1917',3);P.circle(12,0,5,'#1c1917',{nohatch:true});c.restore();}
+    c.restore();P.shape(()=>{c.rect(70,120,580,350);},'rgba(0,0,0,0)',{nohatch:true});
+    if(!P.bp){P.tag(40,60,['Triangles','Squares','Hexagons'][s-1],'#facc15');P.tag(40,94,'Wall per cell '+f1(o.per[o.i],1)+' mm',o.i===2?'#4ade80':'#f87171');P.tag(470,60,'Wax '+f1(o.wax,2)+' mm³','#7dd3fc');}
+    else P.dim(70,492,650,492,'same area in every cell: '+p.A+' mm²');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}},
+
+ {id:'ants',who:'Nature’s idea: ants',year:'copied by computers since 1992',name:'Ant trail: the shortest path',note:'',
+  story:'No ant knows the map. Each one leaves a scent as it walks and prefers the path that smells strongest. Ants on the shorter path come back sooner, so its scent grows faster, and soon the whole colony takes it.',
+  params:[['a','Path A length',20,200,5,60,'cm'],['b','Path B length',20,200,5,120,'cm'],['n','Ants',10,80,1,40,''],['ev','Scent fading each second',1,20,1,5,'%']],
+  calc(p){const sp=3,ta=2*p.a/sp,tb=2*p.b/sp,sh=p.a<=p.b?'A':'B';
+    return {sh,rows:[['Round trip on A',f1(ta,0)+' s'],['Round trip on B',f1(tb,0)+' s'],['Trips per minute on A',f1(60/ta,1)],['Trips per minute on B',f1(60/tb,1)],['Scent builds faster on','path '+sh]],
+      formula:['Time = distance ÷ speed  (an ant walks about 3 cm/s)','Chance of choosing A = scent A² ÷ (scent A² + scent B²)','Shorter path → more trips → more scent → more ants'],
+      status:p.a===p.b?'Both paths are equal: the colony picks one by chance.':'🐜 Watch the colony find path '+sh+', the shorter one, with no leader and no map.',
+      wow:'Delivery routes, phone networks and factory schedules are planned with “ant colony optimisation”, a computer method that copies this trick.'};},
+  draw(c,P,p,o,t,st){const x0=110,x1=610,y=290,ha=-(30+p.a*0.9),hb=30+p.b*0.9,ph=st.ph||[1,1],tot=ph[0]+ph[1]||1;
+    const pt=(h,s)=>{const u=1-s;return [u*u*x0+2*u*s*360+s*s*x1,u*u*y+2*u*s*(y+h*2)+s*s*y];};
+    [[ha,0,'#4ade80'],[hb,1,'#38bdf8']].forEach(([h,i,col])=>{c.strokeStyle=P.bp?'#4a2f17':col;c.globalAlpha=P.bp?1:0.25+0.75*ph[i]/tot;c.lineWidth=P.bp?1.6:3+16*ph[i]/tot;c.lineCap='round';c.beginPath();c.moveTo(x0,y);c.quadraticCurveTo(360,y+h*2,x1,y);c.stroke();c.globalAlpha=1;});
+    P.circle(x0,y,34,'#78350f');P.circle(x0,y,13,'#1c1917');P.circle(x1,y,26,'#dc2626');P.shape(()=>{c.ellipse(x1+8,y-28,12,6,-0.6,0,TAU);},'#16a34a');
+    (st.ants||[]).forEach(q=>{if(q.s<0)return;const h=q.path?hb:ha,A=pt(h,q.s),B=pt(h,Math.min(1,Math.max(0,q.s+0.01*q.dir))),an=Math.atan2(B[1]-A[1],B[0]-A[0]);
+      c.save();c.translate(A[0],A[1]+q.o);c.rotate(an);c.fillStyle=P.bp?'#4a2f17':'#0c0a09';c.beginPath();c.ellipse(-4,0,3.6,2.6,0,0,TAU);c.ellipse(1,0,2.4,2,0,0,TAU);c.ellipse(5,0,2.4,2.2,0,0,TAU);c.fill();
+      if(!P.bp&&q.dir<0){c.fillStyle='#fde68a';c.beginPath();c.arc(8,0,2.4,0,TAU);c.fill();}c.restore();});
+    if(!P.bp){c.fillStyle='#fff';c.font='700 15px '+css('--sans');c.textAlign='center';c.fillText('Nest',x0,y+58);c.fillText('Food',x1,y+54);
+      const na=(st.ants||[]).filter(q=>!q.path).length,nn=(st.ants||[]).length||1;
+      P.tag(40,60,'Path A · '+p.a+' cm · '+Math.round(100*na/nn)+'% of ants','#4ade80');P.tag(40,484,'Path B · '+p.b+' cm · '+Math.round(100*(1-na/nn))+'% of ants','#7dd3fc');}
+    else{P.dim(x0,y+ha-30,x1,y+ha-30,'A = '+p.a+' cm');P.dim(x0,y+hb+30,x1,y+hb+30,'B = '+p.b+' cm');}},
+  step(st,p,o,dt){if(!st.ants||st.ants.length!==p.n){st.ants=[];st.ph=[1,1];for(let k=0;k<p.n;k++)st.ants.push({path:k%2,s:-Math.random()*1.2,dir:1,o:(Math.random()-0.5)*8});}
+    dt=Math.min(dt,0.05);const L=[p.a,p.b],sp=26,f=Math.exp(-p.ev/100*dt*2.5);st.ph[0]=Math.max(0.05,st.ph[0]*f);st.ph[1]=Math.max(0.05,st.ph[1]*f);
+    const pick=()=>{const A=st.ph[0]*st.ph[0],B=st.ph[1]*st.ph[1];return Math.random()<A/(A+B)?0:1;};
+    st.ants.forEach(q=>{q.s+=q.dir*sp*dt/L[q.path];if(q.dir>0&&q.s>=1){q.s=1;q.dir=-1;st.ph[q.path]+=1;q.path=pick();}else if(q.dir<0&&q.s<=0){q.s=0;q.dir=1;st.ph[q.path]+=1;q.path=pick();}});},
+  action:['🐜 Start again',st=>{st.ants=null;}]},
+
+ {id:'burr',who:'Nature’s idea: burdock seeds · engineer George de Mestral',year:'1941',name:'Burr → hook-and-loop fastener',note:'',
+  story:'After a walk, a Swiss engineer found burrs stuck to his dog. Under a microscope he saw hundreds of tiny hooks catching loops of fur. He copied them to make the hook-and-loop fastener on shoes and bags.',
+  params:[['A','Fastener area',1,50,1,10,'cm²'],['h','Hooks in each cm²',50,400,10,300,''],['f','Grip of one hook',5,50,1,20,'mN'],['e','Hooks that catch a loop',10,60,1,30,'%']],
+  calc(p){const n=p.A*p.h,ne=n*p.e/100,F=ne*p.f/1000,kg=F/G0;
+    return {n,ne,F,kg,rows:[['Hooks on the strip',f1(n,0)],['Hooks holding a loop',f1(ne,0)],['Total grip',f1(F,1)+' N'],['It can hold up',f1(kg,2)+' kg']],
+      formula:['Grip = area · hooks per cm² · share that catch · grip of one hook','F = '+p.A+'·'+p.h+'·'+(p.e/100).toFixed(2)+'·'+(p.f/1000).toFixed(3)+' N = '+f1(F,1)+' N'],
+      status:'🧷 '+f1(ne,0)+' tiny hooks share the load. Each is weak, together they hold '+f1(kg,1)+' kg.',
+      wow:'Astronauts use hook-and-loop strips to stop tools floating away. One burr on a dog led to a fastener used all over the world.'};},
+  draw(c,P,p,o,t,st){const a=st.a||0,gap=22+20*(0.5+0.5*Math.sin(a*1.2)),ty=250-gap,by=262+gap*0.2,nH=Math.round(8+p.h/22),closed=gap<30;
+    P.shape(()=>{c.rect(90,ty-40,540,40);},'#1e3a8a');P.shape(()=>{c.rect(90,by+34,540,40);},'#7c2d12');
+    for(let k=0;k<26;k++){const x=100+k*20.4;c.strokeStyle=P.bp?'#4a2f17':'#93c5fd';c.lineWidth=P.bp?1.3:2.2;c.beginPath();c.moveTo(x,ty);c.bezierCurveTo(x-6,ty+26,x+22,ty+26,x+14,ty);c.stroke();}
+    for(let k=0;k<nH;k++){const x=104+k*(520/nH),on=closed&&((k*37)%100)<p.e;c.strokeStyle=P.bp?'#4a2f17':(on?'#4ade80':'#fdba74');c.lineWidth=P.bp?1.3:2.4;c.beginPath();c.moveTo(x,by+34);c.lineTo(x,by+6);c.arc(x+5,by+6,5,Math.PI,TAU+0.6);c.stroke();}
+    // burr and weight
+    const bx=600,byy=96;for(let k=0;k<18;k++){const b=k*TAU/18+a*0.3;P.line(bx,byy,bx+Math.cos(b)*34,byy+Math.sin(b)*34,'#a16207',2);if(!P.bp){c.strokeStyle='#fde68a';c.lineWidth=1.6;c.beginPath();c.arc(bx+Math.cos(b)*34+3,byy+Math.sin(b)*34,3,Math.PI,TAU+0.8);c.stroke();}}P.circle(bx,byy,18,'#65a30d');
+    const ws=Math.min(74,30+Math.sqrt(o.kg)*14);P.line(360,by+74,360,by+104,'#94a3b8',3);P.shape(()=>{c.rect(360-ws/2,by+104,ws,ws*0.8);},'#64748b');
+    if(!P.bp){c.fillStyle='#fff';c.font='700 14px '+css('--sans');c.textAlign='center';c.fillText(f1(o.kg,1)+' kg',360,by+104+ws*0.45);
+      P.tag(40,60,'Grip '+f1(o.F,1)+' N','#4ade80');P.tag(40,94,f1(o.ne,0)+' hooks holding','#facc15');P.tag(440,150,'a burr, up close','#e2e8f0');}
+    else P.dim(90,ty-56,630,ty-56,'area = '+p.A+' cm²');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}}];
 
 // a soft, low knock for the clock and the cradle; only while the machine is running and not paused
 function invClack(vol,hz){if(reduce||INVS.paused||INVS.life<0.6||document.hidden||view!=='lab')return;let c;try{c=ctxA();}catch(e){return;}const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(hz||200,t);o.frequency.exponentialRampToValueAtTime((hz||200)*0.6,t+0.05);
@@ -4127,7 +4413,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   m.appendChild(make('sndbox','Applies to every game, tune and effect. Low is the starting level.'));
   const sv=$('v-sound');if(sv){const b2=make('sndbox2','For everything this screen plays: tunes, chords and samples.');sv.insertBefore(b2,sv.children[1]||null);}
   paint();
-  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 50';m.appendChild(p);})();
+  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 51';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
