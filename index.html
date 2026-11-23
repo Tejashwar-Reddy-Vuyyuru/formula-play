@@ -566,6 +566,24 @@ header #crumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:now
 @media (max-width:370px){header{gap:6px;padding-left:10px;padding-right:10px}header #back:not([hidden])~.mark{display:none}
   .hero-cta{flex-wrap:wrap}.hero-cta button{flex:1 1 auto;min-width:0;padding-left:14px;padding-right:14px;white-space:nowrap}}
 
+/* Inventors on phones: tab arrows, more-below button, swipe-safe sliders, scroll over the sketch */
+#linv-cv{touch-action:pan-y}
+.invcount{margin:0 2px -4px;color:var(--muted)}
+.invtabs{position:relative;display:flex;align-items:center}
+.invtabs .subtabs{flex:1;min-width:0;scroll-snap-type:x proximity;padding:2px 44px 2px 0;scroll-padding:0 44px}
+.invtabs:not(.at-start) .subtabs{-webkit-mask:linear-gradient(90deg,transparent 0,#000 44px);mask:linear-gradient(90deg,transparent 0,#000 44px)}
+.invtabs .subtabs button{scroll-snap-align:center}
+.invarr{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:36px;height:36px;min-height:0!important;padding:0!important;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:800;line-height:1;color:#fff;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 4px 14px -4px rgba(0,0,0,.5);transition:opacity .2s}
+.invarr.l{left:0}.invarr.r{right:0;animation:invnudge 1.6s ease-in-out 3}
+.invtabs.at-start .invarr.l,.invtabs.at-end .invarr.r{opacity:0;pointer-events:none}
+@keyframes invnudge{0%,100%{transform:translateY(-50%)}50%{transform:translate(4px,-50%)}}
+.invmore{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:20;opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;white-space:nowrap;min-height:0!important;padding:9px 16px;border-radius:999px;border:0;font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 10px 26px -8px rgba(0,0,0,.55);transition:opacity .25s,transform .25s}
+.invmore.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+.invmore span{display:inline-block;animation:invbob 1.4s ease-in-out infinite}
+@keyframes invbob{0%,100%{transform:translateY(-2px)}50%{transform:translateY(3px)}}
+:root.nomotion .invmore span,:root.nomotion .invarr.r{animation:none}
+@media (pointer:coarse){#linv-params input[type=range]{pointer-events:none}#linv-params .invp{touch-action:pan-y}}
+.invp.drag b{color:var(--accent)}
 /* ---- Motion lab hub */
 #lcats{display:none!important}
 .lhub{display:none;flex-direction:column;gap:12px}
@@ -4427,12 +4445,47 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   m.appendChild(make('sndbox','Applies to every game, tune and effect. Low is the starting level.'));
   const sv=$('v-sound');if(sv){const b2=make('sndbox2','For everything this screen plays: tunes, chords and samples.');sv.insertBefore(b2,sv.children[1]||null);}
   paint();
-  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 52';m.appendChild(p);})();
+  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 53';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
 function route(){const h=(location.hash||'').slice(1);if(h.startsWith('m-')){try{openCode(h.slice(2));return;}catch(e){showNow('code',false);$('codeerr').textContent=e.message;return;}}if(h==='daily')setQ(todayKey(),true);showNow(views.includes(h)?(h==='arcade'&&!ARC.id?'games':h):'home',false);}
 window.addEventListener('hashchange',route);
+// ---- Inventors: easier on phones (arrows on the machine tabs, a "more below" button, swipe-safe sliders, scrolling over the sketch)
+(function(){const sec=$('linv'),tabs=$('linvs');if(!sec||!tabs)return;
+  // 1. the machine tabs: arrows at both ends, plus how many machines there are
+  const wrap=document.createElement('div');wrap.className='invtabs';tabs.parentNode.insertBefore(wrap,tabs);
+  const cnt=document.createElement('div');cnt.className='invcount small';cnt.textContent=INV.length+' machines · swipe or tap ›';
+  const L=document.createElement('button'),R=document.createElement('button');
+  L.type=R.type='button';L.className='invarr l';R.className='invarr r';L.innerHTML='‹';R.innerHTML='›';L.setAttribute('aria-label','Earlier machines');R.setAttribute('aria-label','More machines');
+  wrap.append(L,tabs,R);wrap.insertAdjacentElement('beforebegin',cnt);
+  const step=()=>Math.max(160,tabs.clientWidth*0.7);
+  L.addEventListener('click',()=>tabs.scrollBy({left:-step(),behavior:'smooth'}));
+  R.addEventListener('click',()=>tabs.scrollBy({left:step(),behavior:'smooth'}));
+  const arrows=()=>{const m=tabs.scrollWidth-tabs.clientWidth;wrap.classList.toggle('at-start',tabs.scrollLeft<=4);wrap.classList.toggle('at-end',tabs.scrollLeft>=m-4);};
+  tabs.addEventListener('scroll',arrows,{passive:true});addEventListener('resize',arrows);
+  tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>b.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})));
+  // 2. a "more below" button while the top of the workshop is on screen
+  const more=document.createElement('button');more.type='button';more.className='invmore';more.innerHTML='<span aria-hidden="true">↓</span> More below';
+  document.body.appendChild(more);
+  more.addEventListener('click',()=>{const t=document.querySelector('#linv-params');if(t)scrollTo({top:t.closest('section').getBoundingClientRect().top+scrollY-70,behavior:'smooth'});});
+  const moreUpd=()=>{const on=INVS.on&&view==='lab';const p=document.querySelector('#linv-params');const below=p?p.closest('section').getBoundingClientRect().top>innerHeight-90:false;more.classList.toggle('show',on&&below);};
+  addEventListener('scroll',moreUpd,{passive:true});addEventListener('resize',moreUpd);
+  new MutationObserver(()=>{moreUpd();arrows();}).observe(document.body,{attributes:true,attributeFilter:['class','data-view']});
+  setInterval(()=>{if(INVS.on){moreUpd();arrows();}},1500);
+  // 3. sliders: a swipe up or down scrolls the page and never changes a number; a tap never jumps the value.
+  //    The number only changes when the finger slides sideways along the slider.
+  const box=$('linv-params');
+  box.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;const row=e.target.closest('.invp');if(!row)return;const inp=row.querySelector('input');if(!inp)return;
+    const r=inp.getBoundingClientRect(),x0=e.clientX,y0=e.clientY,v0=+inp.value,mn=+inp.min,mx=+inp.max,st=+inp.step||1;let drag=false,dead=false;
+    const mv=ev=>{if(dead)return;const dx=ev.clientX-x0,dy=ev.clientY-y0;
+      if(!drag){if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){dead=true;return;}if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.5){drag=true;row.classList.add('drag');}else return;}
+      let v=v0+dx/Math.max(1,r.width)*(mx-mn);v=Math.round((v-mn)/st)*st+mn;v=Math.min(mx,Math.max(mn,+v.toFixed(6)));
+      if(v!==+inp.value){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));}};
+    const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);row.classList.remove('drag');if(drag)buzz(6);};
+    addEventListener('pointermove',mv,{passive:true});addEventListener('pointerup',up);addEventListener('pointercancel',up);},{passive:true});
+  arrows();moreUpd();
+})();
 route();
 window.__fp={get mic2(){return mic;},get LAB(){return LAB;},labState,labBuild,labModel,LABX,encLab,ellK,labCSV,setSub,get saved(){return SAVED;},get prefs(){return PREFS;},getLevel,scoreName,get qmode(){return qmode;},get SP(){return SP;},duelCode,findNotes,tuneAudio,chordName,voiceSample,get T(){return TUNE;},get V(){return V;},SAMPLE_TUNE,get morph(){return morphOn?morphOn.m:null;},get morphA(){return !!morphA;},lineSound,sampleD,makeQ,scoreQ,todayKey,get Q(){return Q;},get qres(){return qstate.res;},hosted,get D(){return D;},get S(){return SND;},get view(){return view;},openCode,compile,analyseSound,sample,synth,simpleShape,resample,fourier,fErr,typeCode,get mic(){return !!mic;}};
 })();
