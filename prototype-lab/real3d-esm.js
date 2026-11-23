@@ -802,9 +802,10 @@ B.submarine = (R, st) => {
   if (mini) { const dome = M(new T.SphereGeometry(Rr * .98, 48, 32, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshPhysicalMaterial({ color: 0xdff3ff, roughness: .02, transmission: .0, transparent: true, opacity: .35, clearcoat: 1, envMapIntensity: 2.5, side: T.DoubleSide }), false);
       dome.rotation.z = -Math.PI / 2; dome.position.x = L * .32; dome.scale.set(1, 1, 1); sub.add(dome);
       const seal = M(new T.TorusGeometry(Rr * .99, Rr * .05, 12, 64), ring); seal.rotation.y = Math.PI / 2; seal.position.x = L * .32; sub.add(seal);
-      const seat = M(new T.BoxGeometry(Rr * .7, Rr * .25, Rr * .7), MAT.dark()); seat.position.set(L * .2, -Rr * .45, 0); sub.add(seat);
-      const pilot = M(new T.CapsuleGeometry(Rr * .2, Rr * .45, 8, 16), new T.MeshStandardMaterial({ color: 0xff6a00, roughness: .8 })); pilot.position.set(L * .25, -Rr * .05, 0); sub.add(pilot);
-      const head = M(new T.SphereGeometry(Rr * .16, 20, 14), new T.MeshStandardMaterial({ color: 0xd9a37e, roughness: .7 })); head.position.set(L * .27, Rr * .42, 0); sub.add(head); }
+      const camB = M(new T.BoxGeometry(Rr * .5, Rr * .4, Rr * .5), MAT.dark()); camB.position.set(L * .24, -Rr * .1, 0); sub.add(camB);
+      const lensC = M(new T.CylinderGeometry(Rr * .14, Rr * .17, Rr * .25, 24), MAT.metal()); lensC.rotation.z = Math.PI / 2; lensC.position.set(L * .24 + Rr * .35, -Rr * .1, 0); sub.add(lensC);
+      const glassC = M(new T.CircleGeometry(Rr * .12, 24), MAT.glass()); glassC.rotation.y = Math.PI / 2; glassC.position.set(L * .24 + Rr * .48, -Rr * .1, 0); sub.add(glassC);
+      [-1, 1].forEach(sd => { const lt = M(new T.SphereGeometry(Rr * .08, 12, 8), MAT.glow(0xfff4c2, 1), false); lt.position.set(L * .3, Rr * .3, sd * Rr * .35); sub.add(lt); }); }
   else { const bowS = M(new T.SphereGeometry(Rr * .25, 20, 14), MAT.dark()); bowS.position.x = L * .49; sub.add(bowS); }
   for (let k = 0; k < (mini ? 5 : 9); k++) { const rg = M(new T.TorusGeometry(Rr * 1.003, Rr * .012, 6, 64), ring); rg.rotation.y = Math.PI / 2; rg.position.x = -L * .25 + k * L * .5 / (mini ? 5 : 9); sub.add(rg); }
   const sailH = mini ? Rr * .55 : Rr * 1.5, sailL = mini ? L * .16 : L * .13, sst = [[sailL * .5, .02, sailH, 0, 0, 2.5], [sailL * .35, Rr * .26, sailH, 0, 0, 2.5], [-sailL * .2, Rr * .22, sailH, 0, 0, 2.5], [-sailL * .5, .02, sailH * .9, 0, 0, 2.5]];
@@ -1203,7 +1204,7 @@ B.airship = (R, st) => {
   const [aU, aD] = kit(root, D * .09, 2);
   const mk = { envelope: env, hotair: env, buoyancy: aU.userData.tip, weight: aD.userData.tip, basket: gon, body: marker(ship, 0, 0, 0) };
   const lowY = D / 2 + D * .25, hiY = D * 2.2;
-  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Helium lift", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Airship + people", col: "#fb7185" }],
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Helium lift", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Airship + cargo", col: "#fb7185" }],
     cam: { pos: new T.Vector3(L * .35, D * 1.6, L * 1.05), target: new T.Vector3(0, D * 1.3, 0), fitW: L * .72 },
     update(R, dt, t) { const ok = R.ok, tgt = ok ? hiY : lowY; st.y = st.y == null ? lowY : st.y + (tgt - st.y) * Math.min(1, dt * .5);
       ship.position.y = st.y + (ok ? Math.sin(t * .5) * D * .03 : 0); ship.rotation.z = ok ? Math.sin(t * .35) * .015 : -.03; props.forEach((pr, i) => pr.rotation.x += (ok ? 14 : 3) * dt * (i ? 1 : -1));
@@ -1703,7 +1704,8 @@ B.coaster = (R, st) => {
   for (let i = 0; i <= N; i += 30) { const p = P[i], u = i / N; if (p.y > 1.2 && !inLoop(u)) root.add(rod(new T.Vector3(p.x, 0, p.z), new T.Vector3(p.x, p.y - .1, p.z), .08, supM)); }
   [-1, 1].forEach(sd => root.add(rod(new T.Vector3(sd * r * .7, 0, 1.2), new T.Vector3(sd * r * .2, .8 + r * .6, 1.2), .12, supM)));
   const car = new T.Group(); root.add(car); const cb = M(new T.BoxGeometry(1.6, .5, 1.1), MAT.paint(0xfacc15)); cb.position.y = .45; car.add(cb); const nose = M(new T.SphereGeometry(.4, 16, 10, 0, Math.PI), MAT.paint(0xfacc15)); nose.rotation.y = -Math.PI / 2; nose.position.set(.8, .45, 0); nose.scale.set(1, .6, 1.3); car.add(nose);
-  [[-.35, 0x3b82f6], [.35, 0xef4444]].forEach(([x, c]) => { const hd = M(new T.SphereGeometry(.16, 14, 10), new T.MeshStandardMaterial({ color: 0xd9a37e })); hd.position.set(x, 1, 0); car.add(hd); const bd = M(new T.CapsuleGeometry(.14, .2, 6, 10), new T.MeshStandardMaterial({ color: c })); bd.position.set(x, .75, 0); car.add(bd); });
+  [[-.5, .5], [.5, .5], [-.5, -.5], [.5, -.5]].forEach(([x, z]) => { const wh = M(new T.CylinderGeometry(.16, .16, .1, 16).rotateX(Math.PI / 2), MAT.rubber()); wh.position.set(x, .2, z * 1.1); car.add(wh); });
+  const spoiler = M(new T.BoxGeometry(.1, .25, 1.1), MAT.paint(0x111827)); spoiler.position.set(-.75, .8, 0); car.add(spoiler); const stripeC = M(new T.BoxGeometry(1.62, .08, .3), MAT.paint(0xef4444)); stripeC.position.set(0, .71, 0); car.add(stripeC);
   const [aV, aG] = kit(root, .5, 2);
   const mk = { top: marker(root, X0 + 1, H + .8, 0), base: marker(root, 0, .8, 0), cable: marker(root, 0, .8 + 2 * r, 1.2), body: car, speed: aV.userData.tip, load: aG.userData.tip, goal: marker(root, 0, .8 + 2 * r + .6, 1.2), stress: marker(root, 0, .8 + 2 * r, 1.2) };
   const yMax = H;
