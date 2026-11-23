@@ -207,6 +207,7 @@ function macroColors(geo, warm) { const p = geo.attributes.position, col = new F
   geo.setAttribute("color", new T.BufferAttribute(col, 3)); }
 function terrainH(x, z) { const r = Math.hypot(x, z), f = Math.max(0, Math.min(1, (r - 28) / 70)); return f * (fbm(x * .006 + 11, z * .006 + 5, 4) * 46 - 15 + Math.sin(x * .011 + z * .004) * 6); }
 function makeGround(kind, base) {
+  if (kind === "none") return new T.Group();
   const g = new T.Group(), desert = base === "desert" || base === "snow", snow = base === "snow";
   if (desert && kind !== "water") {
     const geo = new T.PlaneGeometry(1800, 1800, 220, 220).rotateX(-Math.PI / 2), p = geo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, terrainH(p.getX(i), p.getZ(i))); geo.computeVertexNormals(); macroColors(geo, true);
@@ -225,7 +226,7 @@ function makeGround(kind, base) {
     const gg = new T.PlaneGeometry(4000, 4000, 240, 240).rotateX(-Math.PI / 2); macroColors(gg, false); const gr = M(gg, new T.MeshStandardMaterial({ map: TEX.grass([500, 500]), bumpMap: TEX.grass([500, 500]), bumpScale: 1.2, roughness: 1, vertexColors: true }), false, true); g.add(gr); g.userData.grass = gr;
     if (kind === "road") { const rd = M(new T.PlaneGeometry(4000, 9).rotateX(-Math.PI / 2), new T.MeshStandardMaterial({ map: TEX.asphalt([500, 1]), roughness: .9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), false, true); rd.position.y = .06; g.add(rd); g.userData.road = rd; }
     if (kind === "pad") { const pd = M(new T.CylinderGeometry(22, 22, .3, 64), MAT.concrete([6, 6]), false, true); pd.position.y = .15; g.add(pd); }
-    const tr = trees(kind === "road" ? 160 : 110, kind === "pad" ? 60 : 26, 260, kind === "road"); g.add(tr); g.userData.trees = tr;
+    const tr = trees(kind === "road" ? 160 : 110, kind === "pad" ? 60 : kind === "open" ? 95 : 26, kind === "open" ? 320 : 260, kind === "road"); g.add(tr); g.userData.trees = tr;
   }
   return g;
 }
@@ -519,6 +520,8 @@ B.boat = (R, st) => {
     const boomm = M(new T.CylinderGeometry(.06, .06, Lh * .5, 8), MAT.metal()); boomm.rotation.z = Math.PI / 2; boomm.position.set(Lh * .1 - Lh * .25, fb + .8, 0); boat.add(boomm); }
   else { const cab = M(new T.BoxGeometry(Lh * .28, 1.1, Bw * .7), MAT.white()); cab.position.set(Lh * .02, fb + .55, 0); boat.add(cab); const wsh = M(new T.BoxGeometry(.05, .7, Bw * .66), MAT.glass(), false); wsh.position.set(Lh * .17, fb + 1, 0); wsh.rotation.z = -.5; boat.add(wsh);
     const eng = M(new T.BoxGeometry(.5, .9, .4), MAT.dark()); eng.position.set(-Lh * .45 - .2, fb, 0); boat.add(eng); prop = new T.Group(); prop.position.set(-Lh * .45 - .25, fb - 1.1, 0); boat.add(prop); [0, 1, 2].forEach(k => { const bl = M(new T.BoxGeometry(.04, .42, .14), MAT.metal()); bl.rotation.x = k * 2.094; prop.add(bl); }); }
+  if ((R.sc.kind || "").toLowerCase().includes("solar")) { const rf = new T.Group(); rf.position.y = fb + 2; boat.add(rf); const pT = solarTex(); pT.wrapS = pT.wrapT = T.RepeatWrapping; pT.repeat.set(4, 2);
+    const roof = M(new T.BoxGeometry(Lh * .62, .06, Bw * 1.05), new T.MeshPhysicalMaterial({ map: pT, roughness: .15, metalness: .4, clearcoat: 1 })); roof.position.x = -Lh * .02; rf.add(roof); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => rf.add(rod(new T.Vector3(-Lh * .02 + a * Lh * .28, -2 + .05, b * Bw * .42), new T.Vector3(-Lh * .02 + a * Lh * .28, 0, b * Bw * .42), .05, MAT.metal()))); }
   const wake = particles(300, 0xffffff, .6, { opacity: .75 }); root.add(wake);
   const aB = arrow3(0x22d3ee, 1.3), aT = arrow3(0x22d3ee, 1.3), aD = arrow3(0xfb7185, 1.3); root.add(aB, aT, aD);
   const mk = { hull: marker(boat, 0, fb - D * .4, Bw / 2), sail: marker(boat, 0, fb + Lh * .55, 0), prop: prop || marker(boat, -Lh * .45, 0, 0), buoyancy: aB.userData.tip, drag: aD.userData.tip, wake: marker(root, -Lh * .9, 0, 0) };
@@ -598,7 +601,7 @@ B.energy = (R, st) => {
   const C = new T.Group(); root.add(C); const box = M(new T.BoxGeometry(1.4, 1.8, .9), new T.MeshStandardMaterial({ color: 0xd9dde2, metalness: .6, roughness: .35 })); box.position.y = .9; C.add(box); for (let k = 0; k < 7; k++) { const fin = M(new T.BoxGeometry(1.2, .04, .95), MAT.dark()); fin.position.y = .4 + k * .2; fin.position.z = .02; C.add(fin); }
   const led = M(new T.SphereGeometry(.06, 10, 8), MAT.glow(0x34d399), false); led.position.set(.5, 1.6, .46); C.add(led);
   const L = new T.Group(); L.position.set(9, 0, 0); root.add(L); let load;
-  if (ldk.includes("house")) load = buildHouse(); else if (ldk.includes("bulb")) load = buildBulb(); else if (ldk.includes("laptop")) load = buildDevice("laptop"); else if (ldk.includes("phone")) load = buildDevice("phone"); else if (ldk.includes("car")) { load = buildCar(0x2b6cb0); load.userData.set = () => {}; } else load = buildDevice("laptop");
+  if (ldk.includes("house")) load = buildHouse(); else if (ldk.includes("bulb")) load = buildBulb(); else if (ldk.includes("tv")) load = buildTV(); else if (ldk.includes("laptop")) load = buildDevice("laptop"); else if (ldk.includes("phone")) load = buildDevice("phone"); else if (ldk.includes("car")) { load = buildCar(0x2b6cb0); load.userData.set = () => {}; } else load = buildDevice("laptop");
   L.add(load);
   const curve = new T.CatmullRomCurve3([new T.Vector3(-8, .12, .8), new T.Vector3(-4, .12, 1.4), new T.Vector3(-.4, .9, .5), new T.Vector3(.4, .9, .5), new T.Vector3(4, .12, 1.4), new T.Vector3(8, .12, .8)]);
   root.add(M(new T.TubeGeometry(curve, 120, .07, 10), MAT.rubber()));
@@ -1032,19 +1035,28 @@ B.scooter = (R, st) => {
   const roadTex = TEX.asphalt([8, 1]); const road = M(new T.PlaneGeometry(60, 6).rotateX(-Math.PI / 2), new T.MeshStandardMaterial({ map: roadTex, roughness: .9 }), false, true); tilt.add(road);
   const line = M(new T.PlaneGeometry(60, .12).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xf8fafc }), false); line.position.set(0, .01, 2.4); tilt.add(line);
   const sc = new T.Group(); tilt.add(sc); const dark = MAT.dark(), paint = new T.MeshPhysicalMaterial({ color: 0x0f766e, roughness: .3, clearcoat: 1 });
+  const skate = (R.sc.kind || "").includes("skate"); let wheels;
+  if (skate) { const deck = M(loft(ST([[.48, .02, .015, .015, .13, 2], [.42, .12, .02, .02, .12, 3], [-.42, .12, .02, .02, .12, 3], [-.48, .02, .015, .015, .13, 2]]), { S: 24, R: 20 }), MAT.paint(0x111827)); sc.add(deck);
+    wheels = []; [-.3, .3].forEach(x => { [-1, 1].forEach(sd => { const w = M(new T.CylinderGeometry(.045, .045, .04, 20).rotateX(Math.PI / 2), MAT.paint(0x22d3ee)); w.position.set(x, .045, sd * .09); sc.add(w); wheels.push(w); }); const tr = M(new T.BoxGeometry(.05, .04, .2), MAT.metal()); tr.position.set(x, .08, 0); sc.add(tr); });
+    const mot = M(new T.CylinderGeometry(.05, .05, .05, 16).rotateX(Math.PI / 2), MAT.dark()); mot.position.set(-.3, .045, -.15); sc.add(mot); const bat = M(new T.BoxGeometry(.5, .04, .12), MAT.dark()); bat.position.set(0, .09, 0); sc.add(bat);
+    const pp = figure(0xf97316, 0x1e3a8a); pp.position.set(0, .14, 0); pp.rotation.y = -Math.PI / 2 + .2; pp.userData.legs.forEach((l, i) => { l.position.z = (i ? 1 : -1) * .2; l.rotation.x = (i ? -1 : 1) * .2; }); pp.userData.arms.forEach((a, i) => a.rotation.x = (i ? -1 : 1) * .45); sc.add(pp);
+    var motor = mot, deckM = bat; }
+  else {
+
   const deck = M(new T.BoxGeometry(1.0, .07, .2), paint); deck.position.set(0, .2, 0); sc.add(deck);
-  const wheels = [-.5, .55].map(x => { const w = M(new T.CylinderGeometry(.12, .12, .07, 24).rotateX(Math.PI / 2), MAT.rubber()); w.position.set(x, .12, 0); sc.add(w); return w; });
+  wheels = [-.5, .55].map(x => { const w = M(new T.CylinderGeometry(.12, .12, .07, 24).rotateX(Math.PI / 2), MAT.rubber()); w.position.set(x, .12, 0); sc.add(w); return w; });
   const stem = M(new T.CylinderGeometry(.025, .025, 1.05, 10), dark); stem.position.set(.62, .7, 0); stem.rotation.z = .12; sc.add(stem);
   const hb = M(new T.CylinderGeometry(.02, .02, .55, 10), dark); hb.rotation.x = Math.PI / 2; hb.position.set(.56, 1.2, 0); sc.add(hb);
-  const motor = M(new T.CylinderGeometry(.13, .13, .09, 24).rotateX(Math.PI / 2), MAT.metal()); motor.position.copy(wheels[0].position); sc.add(motor);
+  var motor = M(new T.CylinderGeometry(.13, .13, .09, 24).rotateX(Math.PI / 2), MAT.metal()); motor.position.copy(wheels[0].position); sc.add(motor);
   const suit = new T.MeshStandardMaterial({ color: 0x1e40af, roughness: .8 }), pants = new T.MeshStandardMaterial({ color: 0x1f2937, roughness: .9 });
   [-.08, .08].forEach((z, i) => { const leg = M(new T.CapsuleGeometry(.06, .7, 6, 10), pants); leg.position.set(-.05 + i * .2, .65, z); sc.add(leg); });
   const torso = M(new T.CapsuleGeometry(.15, .5, 6, 12), suit); torso.position.set(.1, 1.3, 0); torso.rotation.z = -.2; sc.add(torso);
   const head = M(new T.SphereGeometry(.12, 16, 12), new T.MeshStandardMaterial({ color: 0xd9a37e })); head.position.set(.18, 1.75, 0); sc.add(head);
   const helmet = M(new T.SphereGeometry(.135, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshStandardMaterial({ color: 0xfacc15 })); helmet.position.copy(head.position); sc.add(helmet);
   [-.12, .12].forEach(z => { const arm = M(new T.CapsuleGeometry(.04, .45, 6, 8), suit); arm.position.set(.36, 1.3, z); arm.rotation.z = -1.0; sc.add(arm); });
+  var deckM = deck; }
   const [aF, aG] = arrowsKit(root, .45);
-  const mk = { motor, battery: deck, wheels: wheels[1], body: marker(sc, 0, 1.2, 0), goal: aF.userData.tip, speed: marker(sc, .3, 1.9, 0), drag: aG.userData.tip };
+  const mk = { motor, battery: deckM, wheels: wheels[1], body: marker(sc, 0, 1.2, 0), goal: aF.userData.tip, speed: marker(sc, .3, 1.9, 0), drag: aG.userData.tip };
   return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aF.userData.tip, text: () => "Motor push", col: "#22d3ee" }, { obj: aG.userData.tip, text: () => "Gravity down the hill", col: "#fb7185" }],
     cam: { pos: new T.Vector3(1.5, 2.2, 5.2), target: new T.Vector3(.3, 1, 0), fitW: 2.2 },
     update(R, dt, t) { const v = R.ok ? 1 : Math.max(.08, R.frac * .5); roadTex.offset.x += v * dt * .25; wheels.forEach(w => w.rotation.z -= v * 25 * dt); sc.position.y = Math.sin(t * 9) * .004;
@@ -1133,6 +1145,579 @@ B.footbridge = (R, st) => {
       aL.userData.set(new T.Vector3(0, yAt(0, st.sg) + 2.2, .8), new T.Vector3(0, -1, 0), 1.2); aS.userData.set(new T.Vector3(-L / 2 + .3, top0 - 1.3, .9), UP, 1.1); aS1.visible = aS2.visible = false; return 0; } };
 };
 
+/* ===================== more machines (v54) ===================== */
+/* a simple person: stands with feet at y=0, about 1.75 m tall */
+function figure(shirt = 0x2563eb, pants = 0x1f2937) {
+  const g = new T.Group(), sm = new T.MeshStandardMaterial({ color: shirt, roughness: .8 }), pm = new T.MeshStandardMaterial({ color: pants, roughness: .9 }), skin = new T.MeshStandardMaterial({ color: 0xd9a37e, roughness: .7 });
+  const legs = [-1, 1].map(sd => { const l = new T.Group(); l.position.set(0, .92, sd * .1); const m = M(new T.CapsuleGeometry(.07, .74, 6, 10), pm); m.position.y = -.45; l.add(m); g.add(l); return l; });
+  const torso = M(new T.CapsuleGeometry(.17, .48, 6, 12), sm); torso.position.y = 1.2; g.add(torso);
+  const head = M(new T.SphereGeometry(.12, 18, 14), skin); head.position.y = 1.62; g.add(head);
+  const arms = [-1, 1].map(sd => { const a = new T.Group(); a.position.set(0, 1.42, sd * .22); const m = M(new T.CapsuleGeometry(.05, .5, 6, 8), sm); m.position.y = -.3; a.add(m); g.add(a); return a; });
+  g.userData = { legs, arms, head, torso }; return g;
+}
+function spinPts(p, dt, spawn, step) { const q = p.userData; for (let i = 0; i < q.n; i++) { if (q.life[i] <= 0) spawn(q, i); if (q.life[i] > 0) { q.life[i] -= dt; step(q, i, dt); } else q.pos[i * 3 + 1] = -500; } p.geometry.attributes.position.needsUpdate = true; }
+function kit(root, th, n) { const a = arrowsKit(root, th); a.forEach((x, i) => { if (i >= n) { x.visible = false; x.userData.set = () => {}; } }); return a; }
+const hide = (q, i) => { q.pos[i * 3 + 1] = -500; };
+
+/* jetpack: a pilot with two small jet engines on the back */
+B.jetpack = (R, st) => {
+  const root = new T.Group(), rig = new T.Group(); root.add(rig); const p = figure(0x0f172a, 0x111827); rig.add(p);
+  p.userData.arms.forEach(a => a.rotation.x = 0); p.userData.arms.forEach((a, i) => { a.rotation.z = .9; });
+  const helm = M(new T.SphereGeometry(.14, 18, 12), MAT.paint(0xf8fafc)); helm.position.y = 1.64; rig.add(helm);
+  const visor = M(new T.SphereGeometry(.142, 18, 12, -.9, 1.8, 1.1, .7), new T.MeshPhysicalMaterial({ color: 0x0b1626, roughness: .05, metalness: .6 })); visor.position.y = 1.64; rig.add(visor);
+  const pack = M(new T.BoxGeometry(.24, .5, .5), MAT.dark()); pack.position.set(-.27, 1.25, 0); rig.add(pack);
+  const n = Math.max(1, Math.min(4, Math.round(R.role("engines", 2)))), eng = [], flames = [];
+  for (let i = 0; i < n; i++) { const z = (i - (n - 1) / 2) * .26; const e = lathe([[.0, .55], [.09, .55], [.11, .45], [.11, .05], [.08, 0], [0, 0]], 28, MAT.metal()); e.position.set(-.45, .78, z); rig.add(e); eng.push(e);
+    const f = M(new T.ConeGeometry(.08, .9, 18, 1, true), MAT.glow(0xff9a3c, .85), false); f.rotation.x = Math.PI; f.position.set(-.45, .3, z); rig.add(f); const f2 = M(new T.ConeGeometry(.045, .5, 14, 1, true), MAT.glow(0xbfe6ff, .9), false); f2.rotation.x = Math.PI; f2.position.set(-.45, .52, z); rig.add(f2); flames.push(f, f2); }
+  const light = new T.PointLight(0xffa04a, 6, 8, 2); light.position.set(-.45, .2, 0); rig.add(light);
+  const pad = M(new T.CylinderGeometry(2.2, 2.2, .08, 48), MAT.concrete([2, 2]), false, true); pad.position.y = .04; root.add(pad);
+  const ringM = M(new T.TorusGeometry(1.6, .04, 8, 64).rotateX(Math.PI / 2), new T.MeshBasicMaterial({ color: 0xfacc15 }), false); ringM.position.y = .09; root.add(ringM);
+  const smoke = particles(160, 0xd6d3d1, .5, { opacity: .35 }); root.add(smoke);
+  const [aU, aD] = kit(root, .45, 2);
+  const mk = { thrust: aU.userData.tip, weight: aD.userData.tip, engine: eng[0], body: marker(rig, 0, 1.3, 0), fuel: pack };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Jet thrust", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Weight", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(3.2, 2.6, 6.2), target: new T.Vector3(0, 1.9, 0), fitW: 2.8 },
+    update(R, dt, t) { const ok = R.ok, tgt = ok ? 1.6 : Math.min(.25, Math.max(0, (R.frac - .7))) * .4; st.alt = st.alt == null ? 0 : st.alt + (tgt - st.alt) * Math.min(1, dt * 1.2);
+      rig.position.y = st.alt + (ok ? Math.sin(t * 2.1) * .05 : 0); rig.rotation.z = ok ? Math.sin(t * 1.3) * .03 : Math.sin(t * 40) * .004;
+      const k = .6 + .4 * Math.min(1.3, R.frac); flames.forEach((f, i) => { f.scale.set(1, k * (.85 + Math.random() * .3), 1); });
+      p.userData.legs.forEach((l, i) => l.rotation.z = ok ? .12 * (i ? 1 : -1) * 0 + .15 : 0);
+      spinPts(smoke, dt, (q, i) => { if (Math.random() < .3) { q.pos[i * 3] = -.45 + (Math.random() - .5) * .3; q.pos[i * 3 + 1] = rig.position.y + .2; q.pos[i * 3 + 2] = (Math.random() - .5) * .4; q.vel[i * 3] = (Math.random() - .5) * 1.4; q.vel[i * 3 + 2] = (Math.random() - .5) * 1.4; q.vel[i * 3 + 1] = -1.5; q.life[i] = 1.4; } else hide(q, i); },
+        (q, i, dt) => { q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; q.pos[i * 3 + 1] = Math.max(.1, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); if (q.pos[i * 3 + 1] <= .1) { q.vel[i * 3] *= 1.04; q.vel[i * 3 + 2] *= 1.04; } });
+      const y = rig.position.y; aU.userData.set(new T.Vector3(.5, y + 1.1, .5), UP, 1.1 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(.5, y + .9, -.5), new T.Vector3(0, -1, 0), 1.1); return 0; } };
+};
+
+/* airship: helium envelope, fins, gondola with propellers */
+B.airship = (R, st) => {
+  const root = new T.Group(), ship = new T.Group(); root.add(ship); const V = Math.max(500, R.role("size", 6000)), D = Math.cbrt(1.5 * V / Math.PI), L = 4 * D;
+  const stn = []; for (let i = 0; i <= 20; i++) { const u = i / 20, r = Math.max(.02, Math.pow(Math.sin(Math.PI * Math.pow(u, .85)), .75)) * D / 2; stn.push([(.5 - u) * L, r, r, r, 0, 2]); }
+  const env = M(loft(ST(stn), { S: 80, R: 48 }), new T.MeshPhysicalMaterial({ color: 0xe5e7eb, roughness: .45, clearcoat: .4 })); ship.add(env);
+  const band = M(loft(ST(stn.map(s => [s[0], s[1] * 1.004, s[2] * 1.004, s[3] * 1.004, 0, 2])), { S: 80, R: 48, a0: -.25, a1: .25 }), new T.MeshStandardMaterial({ color: 0x2563eb, roughness: .5, side: T.DoubleSide })); ship.add(band);
+  for (let k = 0; k < 4; k++) { const fs = new T.Shape(); fs.moveTo(0, 0); fs.lineTo(L * .14, 0); fs.lineTo(L * .05, D * .42); fs.lineTo(-L * .02, D * .42); fs.closePath(); const f = M(new T.ExtrudeGeometry(fs, { depth: D * .02, bevelEnabled: false }), MAT.paint(k % 2 ? 0x1d4ed8 : 0xdc2626));
+    const holder = new T.Group(); holder.rotation.x = k * Math.PI / 2 + Math.PI / 4; holder.position.x = -L * .4; f.position.set(-L * .06, D * .18, -D * .01); holder.add(f); ship.add(holder); }
+  const gon = M(new T.CapsuleGeometry(D * .09, L * .14, 8, 16), MAT.white()); gon.rotation.z = Math.PI / 2; gon.position.set(L * .05, -D / 2 - D * .06, 0); ship.add(gon);
+  const win = M(new T.CapsuleGeometry(D * .092, L * .1, 8, 16, ), MAT.glass()); win.rotation.z = Math.PI / 2; win.position.copy(gon.position).add(new T.Vector3(L * .02, D * .02, 0)); win.scale.set(1, 1, 1.01); ship.add(win);
+  const props = [-1, 1].map(sd => { const pr = new T.Group(); pr.position.set(L * .02, -D / 2 - D * .02, sd * D * .32); ship.add(pr); const hub = M(new T.CylinderGeometry(D * .03, D * .03, D * .12, 16), MAT.dark()); hub.rotation.z = Math.PI / 2; pr.add(hub);
+    for (let b = 0; b < 3; b++) { const bl = M(new T.BoxGeometry(D * .01, D * .22, D * .03), MAT.dark()); bl.position.y = D * .11; const h = new T.Group(); h.rotation.x = b * Math.PI * 2 / 3; h.add(bl); h.position.x = -D * .07; pr.add(h); } ship.add(rod(new T.Vector3(L * .02, -D / 2 - D * .02, 0), new T.Vector3(L * .02, -D / 2 - D * .02, sd * D * .32), D * .012, MAT.metal())); return pr; });
+  const mast = new T.Group(); mast.position.set(L / 2 + D * .4, 0, 0); root.add(mast); const mh = D * .9; const mm = MAT.paint(0xef4444);
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => mast.add(rod(new T.Vector3(a * D * .12, 0, b * D * .12), new T.Vector3(0, mh, 0), D * .012, mm)));
+  const [aU, aD] = kit(root, D * .09, 2);
+  const mk = { envelope: env, hotair: env, buoyancy: aU.userData.tip, weight: aD.userData.tip, basket: gon, body: marker(ship, 0, 0, 0) };
+  const lowY = D / 2 + D * .25, hiY = D * 2.2;
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Helium lift", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Airship + people", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(L * .35, D * 1.6, L * 1.05), target: new T.Vector3(0, D * 1.3, 0), fitW: L * .72 },
+    update(R, dt, t) { const ok = R.ok, tgt = ok ? hiY : lowY; st.y = st.y == null ? lowY : st.y + (tgt - st.y) * Math.min(1, dt * .5);
+      ship.position.y = st.y + (ok ? Math.sin(t * .5) * D * .03 : 0); ship.rotation.z = ok ? Math.sin(t * .35) * .015 : -.03; props.forEach((pr, i) => pr.rotation.x += (ok ? 14 : 3) * dt * (i ? 1 : -1));
+      const y = ship.position.y; aU.userData.set(new T.Vector3(-L * .15, y + D * .55, D * .55), UP, D * .5 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(L * .05, y - D * .7, D * .55), new T.Vector3(0, -1, 0), D * .5); return 0; } };
+};
+
+/* Mars helicopter: small body, four legs, two counter-rotating rotors, solar panel */
+B.marsheli = (R, st) => {
+  const root = new T.Group(), heli = new T.Group(); root.add(heli); const Dm = Math.max(.3, Math.min(1.6, R.role("size", 1.2))), r = Dm / 2;
+  const body = M(new T.BoxGeometry(.2, .14, .16), new T.MeshStandardMaterial({ color: 0xd4af37, metalness: .9, roughness: .35 })); body.position.y = .32; heli.add(body);
+  const blk = M(new T.BoxGeometry(.205, .02, .165), MAT.dark()); blk.position.y = .4; heli.add(blk);
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([a, b]) => { heli.add(rod(new T.Vector3(a * .07, .28, b * .06), new T.Vector3(a * .22, .0, b * .2), .008, MAT.carbon())); const ft = M(new T.SphereGeometry(.018, 10, 8), MAT.dark()); ft.position.set(a * .22, .01, b * .2); heli.add(ft); });
+  const mastH = .62; heli.add(rod(new T.Vector3(0, .39, 0), new T.Vector3(0, mastH + .14, 0), .012, MAT.metal()));
+  const rotors = [.5, .6].map((y, i) => { const g = new T.Group(); g.position.y = y; heli.add(g); const hub = M(new T.CylinderGeometry(.025, .025, .03, 16), MAT.dark()); g.add(hub);
+    [0, 1].forEach(k => { const bl = M(bladeGeo(r - .03, .09, .05, -8, 0x2b2e33), new T.MeshStandardMaterial({ color: 0x1f2125, roughness: .5, side: T.DoubleSide })); bl.position.y = 0; const h = new T.Group(); h.rotation.y = k * Math.PI; h.add(bl); g.add(h); }); return g; });
+  const sp = M(new T.BoxGeometry(.18, .008, .1), new T.MeshPhysicalMaterial({ map: solarTex(), roughness: .2, metalness: .4 })); sp.position.y = mastH + .15; heli.add(sp);
+  const disc = rotors.map((g, i) => { const d = M(new T.CircleGeometry(r, 48).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: TEX.blur(), transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }), false); d.position.y = g.position.y; heli.add(d); return d; });
+  const dust = particles(200, 0xc0734a, .06, { opacity: .55 }); root.add(dust);
+  const rocks = new T.MeshStandardMaterial({ color: 0x8a4b2a, roughness: 1, flatShading: true }); for (let i = 0; i < 14; i++) { const a = i * 2.3, rr = .8 + (i % 5) * .35, s = .04 + (i % 3) * .05, k = M(new T.IcosahedronGeometry(s, 0), rocks, true, true); k.position.set(Math.cos(a) * rr, s * .3, Math.sin(a) * rr); root.add(k); }
+  const [aU, aD] = kit(root, .12, 2);
+  const mk = { rotor: rotors[1], rotors: rotors[1], body, thrust: aU.userData.tip, lift: aU.userData.tip, weight: aD.userData.tip, battery: body, motor: marker(heli, 0, .45, 0) };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Rotor lift", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Weight on Mars", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(1.4, 1.1, 2.4), target: new T.Vector3(0, .55, 0), fitW: Math.max(1.3, Dm * 1.3) },
+    update(R, dt, t) { const ok = R.ok, spin = ok ? 1 : Math.max(.15, R.frac); const tgt = ok ? .9 : 0; st.alt = st.alt == null ? 0 : st.alt + (tgt - st.alt) * Math.min(1, dt * .9); heli.position.y = st.alt + (ok ? Math.sin(t * 2) * .02 : 0);
+      rotors[0].rotation.y += 50 * spin * dt; rotors[1].rotation.y -= 50 * spin * dt; disc.forEach(d => d.material.opacity = .35 * spin);
+      spinPts(dust, dt, (q, i) => { if (ok && st.alt < .7 && Math.random() < .4) { const a = Math.random() * 6.28; q.pos[i * 3] = Math.cos(a) * .2; q.pos[i * 3 + 1] = .03; q.pos[i * 3 + 2] = Math.sin(a) * .2; q.vel[i * 3] = Math.cos(a) * 1.2; q.vel[i * 3 + 2] = Math.sin(a) * 1.2; q.life[i] = 1; } else hide(q, i); },
+        (q, i, dt) => { q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; q.pos[i * 3 + 1] += .15 * dt; });
+      const y = heli.position.y; aU.userData.set(new T.Vector3(r + .15, y + .55, 0), UP, .35 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(-r - .15, y + .4, 0), new T.Vector3(0, -1, 0), .35); return 0; } };
+};
+
+/* paper airplane: folded dart thrown from a hand, glides to a target line */
+B.paperplane = (R, st) => {
+  const root = new T.Group(), plane = new T.Group(); root.add(plane);
+  const pts = [[.45, 0, 0], [-.3, .02, .32], [-.3, .02, .02], [-.3, -.09, 0], [-.3, .02, -.02], [-.3, .02, -.32]];
+  const v = pts.map(p => new T.Vector3(...p)), tri = [[0, 1, 2], [0, 2, 3], [0, 3, 4], [0, 4, 5]], pos = []; tri.forEach(f => f.forEach(k => pos.push(v[k].x, v[k].y, v[k].z)));
+  const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  plane.add(M(g, new T.MeshStandardMaterial({ color: 0xf8fafc, roughness: .9, side: T.DoubleSide }))); plane.scale.setScalar(2.6);
+  const ink = M(new T.PlaneGeometry(.14, .06), new T.MeshBasicMaterial({ color: 0xef4444, side: T.DoubleSide }), false); ink.rotation.x = -Math.PI / 2; ink.position.set(-.12, .025, .15); plane.add(ink);
+  const kid = figure(0x16a34a, 0x1e3a8a); kid.position.set(-1, 0, .6); root.add(kid); kid.userData.arms[1].rotation.z = 2.3;
+  const tgtD = Math.max(5, R.role("target", 20)); const flag = new T.Group(); flag.position.set(tgtD, 0, 0); root.add(flag);
+  flag.add(rod(new T.Vector3(0, 0, -2), new T.Vector3(0, 0, 2), .03, new T.MeshBasicMaterial({ color: 0xffffff }))); const pole = M(new T.CylinderGeometry(.03, .03, 1.6, 8), MAT.metal()); pole.position.set(0, .8, -2); flag.add(pole);
+  const cloth = M(new T.PlaneGeometry(.6, .4), new T.MeshStandardMaterial({ color: 0xf43f5e, side: T.DoubleSide })); cloth.position.set(.3, 1.4, -2); flag.add(cloth);
+  for (let m = 5; m < tgtD; m += 5) { const tick = M(new T.PlaneGeometry(.08, 1.2).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .6 }), false, false); tick.position.set(m, .02, 0); root.add(tick); }
+  const trail = particles(60, 0xffffff, .05, { opacity: .5 }); root.add(trail);
+  const pathG = new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]), path = new T.Line(pathG, new T.LineDashedMaterial({ color: 0xffffff, dashSize: .4, gapSize: .3, transparent: true, opacity: .8 })); root.add(path);
+  const landM = M(new T.RingGeometry(.25, .4, 32).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x22d3ee, side: T.DoubleSide }), false); root.add(landM);
+  const [aL, aW] = kit(root, .25, 2);
+  const mk = { wing: plane, airfoil: plane, body: plane, lift: aL.userData.tip, weight: aW.userData.tip, goal: marker(flag, 0, 1.8, -2), drag: aW.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "open", labels: [{ obj: marker(flag, 0, 2, -2), text: () => "Goal " + Math.round(tgtD) + " m", col: "#fbbf24" }],
+    cam: { pos: new T.Vector3(tgtD * .35, 2.6, tgtD * .5 + 3), target: new T.Vector3(tgtD * .4, 1.2, 0), fitW: tgtD * .5 + 1.5 },
+    update(R, dt, t) { const e = R.env || {}, h = Math.max(1, +e.h || 2), LD = Math.max(1, +e.LD || 5), dist = h * LD; st.x = (st.x == null ? 0 : st.x + dt * 6);
+      const total = dist + 3; if (st.x > total) st.x = 0; const x = Math.min(st.x, dist), y = Math.max(.05, h - x / LD), climb = Math.min(1, st.x / 1.2);
+      plane.position.set(x - .4, st.x < 1.2 ? 1.5 + (h - 1.5) * climb : y, .6 - x * .01); plane.rotation.z = st.x < 1.2 ? .3 : -Math.atan(1 / LD) * (x < dist ? 1 : 0); plane.rotation.x = Math.sin(t * 3) * .05;
+      kid.userData.arms[1].rotation.z = st.x < .6 ? 2.6 - st.x * 2 : 1.4;
+      const pp = pathG.attributes.position; pp.setXYZ(0, -.4, h, .6); pp.setXYZ(1, dist - .4, .05, .6 - dist * .01); pp.needsUpdate = true; path.computeLineDistances(); landM.position.set(dist - .4, .03, .6 - dist * .01);
+      aL.userData.set(plane.position.clone().add(new T.Vector3(0, .25, 0)), UP, .6); aW.userData.set(plane.position.clone().add(new T.Vector3(0, -.25, 0)), new T.Vector3(0, -1, 0), .5); aL.visible = aW.visible = x < dist;
+      spinPts(trail, dt, (q, i) => { if (x < dist && Math.random() < .25) { q.pos[i * 3] = plane.position.x - .4; q.pos[i * 3 + 1] = plane.position.y; q.pos[i * 3 + 2] = plane.position.z; q.life[i] = .7; } else hide(q, i); }, () => {}); return 0; } };
+};
+
+/* water rocket: plastic bottle with fins on a launch tube, pump hose, water jet */
+B.waterrocket = (R, st) => {
+  const root = new T.Group(), rk = new T.Group(); root.add(rk);
+  const plast = new T.MeshPhysicalMaterial({ color: 0xdbeafe, roughness: .05, transmission: 0, transparent: true, opacity: .45, clearcoat: 1, side: T.DoubleSide, depthWrite: false });
+  const prof = [[.02, 0], [.04, .02], [.05, .08], [.11, .2], [.11, .5], [.11, .62], [.1, .7]].map(([r, y]) => new T.Vector2(r, y)); const bottle = new T.Mesh(new T.LatheGeometry(prof, 40), plast); rk.add(bottle);
+  const nose = lathe([[.1, .7], [.09, .8], [.05, .9], [0, .95]], 32, MAT.paint(0xef4444)); rk.add(nose);
+  const fill = Math.max(.15, Math.min(.9, R.role("water", .33))); const water = M(new T.CylinderGeometry(.104, .104, .46 * fill, 32), new T.MeshPhysicalMaterial({ color: 0x38bdf8, roughness: .05, transparent: true, opacity: .8 }), false); water.position.y = .1 + .23 * fill; rk.add(water);
+  for (let k = 0; k < 3; k++) { const fs = new T.Shape(); fs.moveTo(0, 0); fs.lineTo(.13, -.05); fs.lineTo(.13, .05); fs.lineTo(0, .22); fs.closePath(); const f = M(new T.ExtrudeGeometry(fs, { depth: .006, bevelEnabled: false }), MAT.paint(0xf59e0b)); const h = new T.Group(); h.rotation.y = k * Math.PI * 2 / 3; f.position.set(.1, .02, -.003); h.add(f); rk.add(h); }
+  rk.scale.setScalar(2.2); rk.position.y = .35;
+  const base = M(new T.BoxGeometry(.9, .06, .9), new T.MeshStandardMaterial({ map: TEX.wood([1, 1]), roughness: .7 })); base.position.y = .03; root.add(base);
+  const tubeL = M(new T.CylinderGeometry(.03, .03, .45, 12), MAT.white()); tubeL.position.y = .25; root.add(tubeL);
+  [[1, 0], [-.5, .87], [-.5, -.87]].forEach(([a, b]) => root.add(rod(new T.Vector3(a * .38, .05, b * .38), new T.Vector3(a * .12, .45, b * .12), .012, MAT.metal())));
+  root.add(tube([[0, .1, 0], [.6, .05, .4], [1.4, .03, .5], [1.9, .05, .2]], .02, MAT.rubber()));
+  const pump = new T.Group(); pump.position.set(2, 0, .2); root.add(pump); const bar = M(new T.CylinderGeometry(.05, .05, .7, 16), MAT.paint(0x2563eb)); bar.position.y = .4; pump.add(bar); const hd = M(new T.BoxGeometry(.06, .04, .4), MAT.dark()); hd.position.y = .8; pump.add(hd);
+  const gauge = M(new T.CylinderGeometry(.07, .07, .02, 24), MAT.white()); gauge.rotation.x = Math.PI / 2; gauge.position.set(0, .55, .06); pump.add(gauge);
+  const jet = particles(260, 0x7dd3fc, .07, { opacity: .85 }); root.add(jet);
+  const Hm = Math.max(1, R.role("height", 20));
+  const [aT, aG] = kit(root, .25, 2);
+  const mk = { tank: rk, body: marker(rk, 0, .5, 0), engine: marker(rk, 0, 0, 0), thrust: aT.userData.tip, gravity: aG.userData.tip, goal: marker(root, 0, 6, 0), drag: aG.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aT.userData.tip, text: () => "Water jet push", col: "#22d3ee" }, { obj: aG.userData.tip, text: () => "Gravity", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(4.2, 3.2, 8.5), target: new T.Vector3(.4, 3.6, 0), fitW: 4.6 },
+    update(R, dt, t) { const per = 6; st.c = ((st.c == null ? 0 : st.c) + dt) % per; const c = st.c, boost = .35, top = Math.min(8, 1 + Hm * .14), vUp = Math.sqrt(2 * 9.81 * top);
+      let y = .35, firing = false; if (c > 1.5) { const tt = c - 1.5; if (tt < boost) { y = .35 + .5 * (vUp / boost) * tt * tt; firing = true; } else { const t2 = tt - boost; y = .35 + .5 * vUp * boost + vUp * t2 - 4.9 * t2 * t2; } if (y < .35) y = .35; }
+      rk.position.y = y; rk.rotation.z = y > 2 && c > 1.5 + boost + vUp / 9.81 ? Math.PI * Math.min(1, (c - 1.5 - boost - vUp / 9.81) * 2) : 0;
+      bar.position.y = c < 1.5 ? .4 + Math.abs(Math.sin(c * 6)) * .15 : .4; hd.position.y = bar.position.y + .4;
+      spinPts(jet, dt, (q, i) => { if (firing && Math.random() < .9) { q.pos[i * 3] = (Math.random() - .5) * .05; q.pos[i * 3 + 1] = y; q.pos[i * 3 + 2] = (Math.random() - .5) * .05; q.vel[i * 3] = (Math.random() - .5) * 1.5; q.vel[i * 3 + 1] = -6 - Math.random() * 3; q.vel[i * 3 + 2] = (Math.random() - .5) * 1.5; q.life[i] = .6; } else hide(q, i); },
+        (q, i, dt) => { q.vel[i * 3 + 1] -= 9.8 * dt; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(.02, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; });
+      aT.userData.set(new T.Vector3(.7, Math.min(y, 6) + .8, 0), UP, .8 * Math.min(2, R.margin)); aG.userData.set(new T.Vector3(-.7, Math.min(y, 6) + 1.2, 0), new T.Vector3(0, -1, 0), .7); return 0; } };
+};
+
+/* canopy: a paraglider soaring on a ridge, or a round parachute coming down */
+B.canopy = (R, st) => {
+  const root = new T.Group(), kind = (R.sc.kind || "").includes("chute") ? "chute" : "para", rig = new T.Group(); root.add(rig);
+  const pilot = figure(0xf97316, 0x1f2937); pilot.position.y = -1.75; rig.add(pilot); const helm = M(new T.SphereGeometry(.135, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), MAT.paint(0xfacc15)); helm.position.y = -1.75 + 1.63; rig.add(helm);
+  const lineM = new T.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: .7 }), lines = new T.Group(); rig.add(lines); let canopy, sz;
+  if (kind === "chute") { const Dm = Math.max(2, Math.min(12, R.role("size", 7))); sz = Dm; const g = new T.SphereGeometry(Dm / 2, 48, 18, 0, Math.PI * 2, 0, Math.PI / 2.4); const col = []; const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const a = Math.atan2(p.getZ(i), p.getX(i)); const k = Math.floor((a + Math.PI) / (Math.PI / 6)) % 2; col.push(...(k ? [.95, .3, .2] : [.97, .97, .95])); } g.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+    canopy = M(g, VC(new T.MeshStandardMaterial({ roughness: .7, side: T.DoubleSide }))); canopy.scale.y = .55; canopy.position.y = Dm * .55 + 1; rig.add(canopy);
+    const pts = []; for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; pts.push(new T.Vector3(0, -.3, 0), new T.Vector3(Math.cos(a) * Dm / 2 * .97, canopy.position.y + Dm * .12, Math.sin(a) * Dm / 2 * .97)); } lines.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(pts), lineM)); }
+  else { const S = Math.max(15, Math.min(35, R.role("size", 25))); const span = Math.sqrt(S * 5.2), ch = S / span; sz = span; const NI = 6, NJ = 36, pos = [], idx = [], Rr = span * .62;
+    for (let j = 0; j <= NJ; j++) for (let i = 0; i <= NI; i++) { const a = (-55 + 110 * j / NJ) * Math.PI / 180, x = (i / NI - .4) * ch * (1 - Math.pow(Math.abs(j / NJ - .5) * 2, 3) * .5); pos.push(x, Math.cos(a) * Rr - Rr * .55 + 5.5, Math.sin(a) * Rr); }
+    for (let j = 0; j < NJ; j++) for (let i = 0; i < NI; i++) { const a = j * (NI + 1) + i, b = a + NI + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+    const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const col = []; for (let j = 0; j <= NJ; j++) for (let i = 0; i <= NI; i++) { const k = Math.floor(j / 6) % 3; col.push(...[[.13, .55, .95], [.98, .8, .2], [.95, .3, .45]][k]); } g.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+    canopy = M(g, VC(new T.MeshStandardMaterial({ roughness: .6, side: T.DoubleSide }))); rig.add(canopy);
+    const pts = []; for (let j = 0; j <= NJ; j += 3) { const a = (-55 + 110 * j / NJ) * Math.PI / 180; pts.push(new T.Vector3(0, -.4, 0), new T.Vector3(0, Math.cos(a) * Rr - Rr * .55 + 5.5, Math.sin(a) * Rr)); } lines.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(pts), lineM));
+    const hill = new T.Mesh(new T.CylinderGeometry(18, 46, 26, 48, 1).translate(0, 13, 0), new T.MeshStandardMaterial({ map: TEX.grass([8, 4]), roughness: 1 })); hill.receiveShadow = true; hill.position.set(-44, -2, -10); root.add(hill); }
+  const air = particles(140, 0xffffff, .12, { opacity: .45 }); root.add(air);
+  const [aU, aD] = kit(root, .4, 2);
+  const mk = { wing: canopy, airfoil: canopy, envelope: canopy, body: marker(rig, 0, -1, 0), lift: aU.userData.tip, drag: aU.userData.tip, weight: aD.userData.tip, buoyancy: aU.userData.tip };
+  const chute = kind === "chute";
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => chute ? "Air drag" : "Rising air", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Weight", col: "#fb7185" }],
+    cam: chute ? { pos: new T.Vector3(sz * 1.2 + 4, sz * .9 + 6, sz * 1.6 + 8), target: new T.Vector3(0, sz * .5 + 4, 0), fitW: sz * 1.1 + 4 } : { pos: new T.Vector3(6, 22, 26), target: new T.Vector3(0, 18, 0), fitW: sz * 1.1 },
+    update(R, dt, t) { const ok = R.ok; if (chute) { const e = R.env || {}, vd = Math.max(1, Math.min(25, R.role("speed", 6))), top = sz * .5 + 16; st.y = st.y == null ? top : st.y - vd * .35 * dt; if (st.y < 1.75) { st.land = (st.land || 0) + dt; st.y = 1.75; if (st.land > 1.6) { st.y = top; st.land = 0; } }
+        rig.position.y = st.y; rig.rotation.z = Math.sin(t * .8) * .03; pilot.rotation.z = st.land && !ok ? -Math.min(1.4, st.land * 2.5) : 0; pilot.position.x = st.land && !ok ? Math.min(.8, st.land) : 0; canopy.scale.y = .55 + Math.sin(t * 2.2) * .02; }
+      else { const tgt = ok ? 18 : 4; st.y = st.y == null ? 18 : st.y + (tgt - st.y) * Math.min(1, dt * .25); rig.position.set(Math.sin(t * .18) * 6, st.y + Math.sin(t * .6) * .3, 0); rig.rotation.y = Math.PI / 2 + Math.cos(t * .18) * .25; rig.rotation.z = Math.sin(t * .18) * .12; }
+      spinPts(air, dt, (q, i) => { if (Math.random() < .2) { q.pos[i * 3] = (Math.random() - .5) * 26; q.pos[i * 3 + 1] = chute ? rig.position.y - 6 : 2 + Math.random() * 6; q.pos[i * 3 + 2] = (Math.random() - .5) * 20; q.life[i] = 3; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3 + 1] += (chute ? 4 : 2.5) * dt; });
+      const y = rig.position.y; aU.userData.set(new T.Vector3(rig.position.x + 1.2, y + (chute ? sz * .55 + 1.6 : 3), 0), UP, 1.6 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(rig.position.x + .8, y - 1.2, 0), new T.Vector3(0, -1, 0), 1.6); return 0; } };
+};
+
+/* solar sail: square mirror sail on diagonal booms, sunlight pushing it, in space */
+B.solarsail = (R, st) => {
+  const root = new T.Group(), craft = new T.Group(); root.add(craft); const Ls = Math.max(3, Math.min(40, R.role("size", 10))), s = Math.min(16, 4 + Ls * .35), h = s / 2;
+  const sailM = new T.MeshStandardMaterial({ color: 0xdfe7f2, metalness: .75, roughness: .22, side: T.DoubleSide, emissive: 0x1c2838, envMapIntensity: 2 });
+  for (let k = 0; k < 4; k++) { const sh = new T.Shape(); sh.moveTo(0, 0); sh.lineTo(h * 1.414, 0); sh.quadraticCurveTo(h * .8, h * .8 * .9, 0, h * 1.414); sh.closePath(); const q = M(new T.ShapeGeometry(sh, 12), sailM, false, false); q.rotation.z = k * Math.PI / 2 + Math.PI / 4; q.rotation.z -= Math.PI / 4; const holder = new T.Group(); holder.rotation.z = Math.PI / 4; holder.add(q); craft.add(holder); }
+  [0, 1].forEach(k => { const b = M(new T.CylinderGeometry(.04, .04, s * 1.414 * .98, 8), MAT.metal()); b.rotation.z = Math.PI / 4 + k * Math.PI / 2; craft.add(b); });
+  const hub = M(new T.BoxGeometry(.7, .7, .9), MAT.paint(0xd4af37)); hub.position.z = .45; craft.add(hub); const ant = M(new T.CylinderGeometry(.2, .02, .2, 20), MAT.white()); ant.rotation.x = Math.PI / 2; ant.position.z = 1; craft.add(ant);
+  craft.rotation.y = -.35; craft.rotation.x = -.1;
+  const ray = particles(220, 0xfff1b8, .14, { add: true, opacity: .8 }); root.add(ray);
+  const sunDirV = new T.Vector3(-1, .25, .6).normalize(); const sunG = M(new T.SphereGeometry(5, 24, 16), new T.MeshBasicMaterial({ color: 0xfff4c2, fog: false }), false); sunG.position.copy(sunDirV.clone().multiplyScalar(200)); root.add(sunG);
+  const halo = M(new T.SphereGeometry(9, 24, 16), MAT.glow(0xffd27a, .25), false); halo.position.copy(sunG.position); root.add(halo);
+  const [aP] = kit(root, .6, 1);
+  const mk = { wing: craft, source: sunG, thrust: aP.userData.tip, body: hub, load: hub, goal: aP.userData.tip, envelope: craft };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: aP.userData.tip, text: () => "Light push", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(s * .45, s * .3, s * 1.5), target: new T.Vector3(0, 0, 0), fitW: s * 1.05 },
+    update(R, dt, t) { craft.rotation.z = t * .05; craft.position.x = Math.sin(t * .2) * .2;
+      spinPts(ray, dt, (q, i) => { if (Math.random() < .5) { const u = (Math.random() - .5) * s, w = (Math.random() - .5) * s; q.pos[i * 3] = sunDirV.x * 40 + u * .7; q.pos[i * 3 + 1] = sunDirV.y * 40 + w * .7; q.pos[i * 3 + 2] = sunDirV.z * 40 + u * .4; q.life[i] = 1.6; } else hide(q, i); },
+        (q, i, dt) => { q.pos[i * 3] -= sunDirV.x * 26 * dt; q.pos[i * 3 + 1] -= sunDirV.y * 26 * dt; q.pos[i * 3 + 2] -= sunDirV.z * 26 * dt; if (Math.hypot(q.pos[i * 3], q.pos[i * 3 + 1], q.pos[i * 3 + 2]) < s * .25) q.life[i] = 0; });
+      aP.userData.set(new T.Vector3(0, 0, -.5), new T.Vector3(.4, -.1, -1).normalize(), s * .25 * Math.min(2, R.margin)); return 0; } };
+};
+
+/* Moon rover: six wheels, solar deck, mast camera, on grey regolith with craters */
+B.rover = (R, st) => {
+  const root = new T.Group(), rv = new T.Group(); root.add(rv); const A = Math.max(.2, Math.min(4, R.role("area", 1)));
+  const regT = ctex("regolith", 512, 512, (x, w, h) => { x.fillStyle = "#8d8c88"; x.fillRect(0, 0, w, h); noise(x, w, h, ["#7a7975", "#a3a29d", "#6b6a66", "#b5b4af"], 30000, 1.8); for (let i = 0; i < 40; i++) { const cx = rnd() * w, cy = rnd() * h, r = 4 + rnd() * 26; const g = x.createRadialGradient(cx, cy, r * .5, cx, cy, r); g.addColorStop(0, "rgba(60,60,58,.35)"); g.addColorStop(.85, "rgba(190,190,185,.3)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); } }, [60, 60]);
+  const gGeo = new T.PlaneGeometry(400, 400, 160, 160).rotateX(-Math.PI / 2), gp = gGeo.attributes.position; for (let i = 0; i < gp.count; i++) { const x = gp.getX(i), z = gp.getZ(i); let y = fbm(x * .05, z * .05, 4) * .8 - .4; [[12, -14, 5], [-18, -8, 7], [25, 10, 9], [-9, 18, 4]].forEach(([cx, cz, r]) => { const d = Math.hypot(x - cx, z - cz) / r; if (d < 1) y -= (1 - d * d) * r * .25; else if (d < 1.4) y += (1.4 - d) * r * .12; }); if (Math.abs(z) < 3) y *= .2; gp.setY(i, y); } gGeo.computeVertexNormals();
+  const moon = M(gGeo, new T.MeshStandardMaterial({ map: regT, bumpMap: regT, bumpScale: 1.5, roughness: 1 }), false, true); root.add(moon);
+  const body = M(new T.BoxGeometry(1.6, .35, 1), new T.MeshStandardMaterial({ color: 0xd1d5db, metalness: .6, roughness: .4 })); body.position.y = .75; rv.add(body);
+  const foil = M(new T.BoxGeometry(1.4, .3, .9), new T.MeshStandardMaterial({ color: 0xd4af37, metalness: .9, roughness: .3 })); foil.position.y = .55; rv.add(foil);
+  const pw = Math.sqrt(A * 1.6), pd = A / pw; const deck = M(new T.BoxGeometry(pw, .03, pd), new T.MeshPhysicalMaterial({ map: solarTex(), roughness: .2, metalness: .4, clearcoat: 1 })); deck.position.y = 1.0; rv.add(deck);
+  const wheels = []; [-.7, 0, .7].forEach(x => [-1, 1].forEach(sd => { const w = M(new T.CylinderGeometry(.24, .24, .16, 24).rotateX(Math.PI / 2), new T.MeshStandardMaterial({ color: 0x9ca3af, metalness: .7, roughness: .5, wireframe: false })); w.position.set(x, .24, sd * .62); rv.add(w); wheels.push(w);
+    const grouser = M(new T.TorusGeometry(.24, .02, 6, 24), MAT.dark()); grouser.position.copy(w.position); grouser.position.z += sd * .08; rv.add(grouser); wheels.push(grouser); rv.add(rod(new T.Vector3(x, .5, sd * .45), new T.Vector3(x, .26, sd * .55), .03, MAT.metal())); }));
+  rv.add(rod(new T.Vector3(.6, .9, .3), new T.Vector3(.6, 1.7, .3), .03, MAT.metal())); const camH = M(new T.BoxGeometry(.22, .14, .3), MAT.white()); camH.position.set(.6, 1.75, .3); rv.add(camH);
+  [-1, 1].forEach(sd => { const l = M(new T.CylinderGeometry(.04, .04, .04, 16), MAT.glass()); l.rotation.z = Math.PI / 2; l.position.set(.72, 1.76, .3 + sd * .07); rv.add(l); });
+  const dish = M(new T.SphereGeometry(.28, 20, 10, 0, Math.PI * 2, 0, Math.PI / 3), MAT.white()); dish.position.set(-.55, 1.35, -.25); dish.rotation.z = .6; rv.add(dish); rv.add(rod(new T.Vector3(-.55, .92, -.25), new T.Vector3(-.55, 1.3, -.25), .025, MAT.metal()));
+  const dust = particles(120, 0xb8b7b2, .08, { opacity: .5 }); root.add(dust);
+  const [aP, aR] = kit(root, .3, 2);
+  const mk = { source: deck, battery: foil, motor: wheels[0], wheels: wheels[4], body: marker(rv, 0, 1.2, 0), drag: aR.userData.tip, goal: aP.userData.tip, speed: marker(rv, 0, 1.8, 0) };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: marker(deck, 0, .15, 0), text: () => "Sunlight → power", col: "#fbbf24" }, { obj: aR.userData.tip, text: () => "Soft dust holds it back", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(3.6, 2.6, 5), target: new T.Vector3(0, .8, 0), fitW: 3.4 },
+    update(R, dt, t) { const v = R.ok ? 1 : Math.max(.1, R.frac * .5); st.o = (st.o || 0) + v * dt * .02; regT.offset.x = st.o * 60 / 400 * 60; moon.position.x = 0; wheels.forEach(w => w.rotation.z -= v * 2.2 * dt); rv.position.y = Math.sin(t * 5) * .006;
+      regT.offset.x = (st.o * 6) % 1; spinPts(dust, dt, (q, i) => { if (Math.random() < .25 * v) { q.pos[i * 3] = -.8 + (Math.random() - .5) * .3; q.pos[i * 3 + 1] = .08; q.pos[i * 3 + 2] = (Math.random() > .5 ? 1 : -1) * .62; q.vel[i * 3] = -.6; q.vel[i * 3 + 1] = .6 + Math.random() * .5; q.life[i] = 1.2; } else hide(q, i); }, (q, i, dt) => { q.vel[i * 3 + 1] -= 1.62 * dt; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(.02, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); });
+      aP.userData.set(new T.Vector3(1, .5, .9), new T.Vector3(1, 0, 0), .7 * Math.min(2, R.margin)); aR.userData.set(new T.Vector3(-1.1, .4, .9), new T.Vector3(-1, 0, 0), .7); return 0; } };
+};
+
+/* electric bike: rider on a bike with a frame battery and hub motor, riding along a road */
+B.ebike = (R, st) => {
+  const root = new T.Group(), bike = buildBike(true); bike.scale.setScalar(1.5); root.add(bike);
+  const bat = M(new T.BoxGeometry(.42, .1, .09), MAT.dark()); bat.position.set(-.05, .66, 0); bat.rotation.z = -.95; bike.add(bat); const stripe = M(new T.BoxGeometry(.3, .02, .092), new T.MeshBasicMaterial({ color: 0x22c55e })); stripe.position.copy(bat.position); stripe.rotation.z = -.95; bike.add(stripe);
+  const hub = M(new T.CylinderGeometry(.08, .08, .09, 24).rotateX(Math.PI / 2), MAT.metal()); hub.position.set(-.55, .35, 0); bike.add(hub);
+  const [aF, aD] = kit(root, .4, 2);
+  const mk = { battery: bat, motor: hub, wheels: marker(bike, .55, .35, 0), body: marker(bike, 0, 1.3, 0), drag: aD.userData.tip, goal: aF.userData.tip, speed: marker(bike, 0, 1.9, 0) };
+  return { root, anchors: mk, follow: null, ground: "road", moving: true, labels: [{ obj: aF.userData.tip, text: () => "Motor + legs", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Air + rolling drag", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(2.4, 2, 4.6), target: new T.Vector3(0, 1.1, 0), fitW: 2.4 },
+    update(R, dt, t) { const v = R.ok ? 7 : 3 * R.frac + 1; st.a = (st.a || 0) + v * dt * .9; pedal(bike, st.a); bike.userData.wheels.forEach(w => w.rotation.z -= v / .5 * dt); bike.position.y = Math.sin(t * 9) * .003;
+      aF.userData.set(new T.Vector3(1.1, .55, .55), new T.Vector3(1, 0, 0), .8 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(1.9, 1.2, .55), new T.Vector3(-1, 0, 0), .7); return v; } };
+};
+
+/* hydrofoil board: rider on a board lifted above the water by an underwater wing */
+B.hydrofoil = (R, st) => {
+  const root = new T.Group(), rig = new T.Group(); root.add(rig);
+  const board = M(loft(ST([[.75, .02, .02, .02, 0, 2], [.55, .28, .05, .04, 0, 3], [-.4, .3, .05, .04, 0, 4], [-.7, .26, .05, .04, 0, 4]]), { S: 30, R: 24 }), MAT.paint(0x0ea5e9)); rig.add(board);
+  const mast = M(new T.BoxGeometry(.12, .85, .02), MAT.carbon()); mast.position.set(-.15, -.45, 0); rig.add(mast);
+  const fus = M(new T.CylinderGeometry(.02, .02, .7, 10), MAT.carbon()); fus.rotation.z = Math.PI / 2; fus.position.set(-.1, -.88, 0); rig.add(fus);
+  const A = Math.max(.05, R.role("area", .15)), span = Math.sqrt(A * 6); const fw = M(airfoil({ span: span / 2, root: A / span * 1.3, tip: A / span * .5, th: .12, cam: .04, S: 10, C: 10 }), MAT.carbon()); fw.position.set(.15, -.88, 0); rig.add(fw); const fw2 = M(airfoil({ span: span / 2, root: A / span * 1.3, tip: A / span * .5, th: .12, cam: .04, S: 10, C: 10, dir: -1 }), MAT.carbon()); fw2.position.copy(fw.position); rig.add(fw2);
+  const tail = M(new T.BoxGeometry(.1, .01, .32), MAT.carbon()); tail.position.set(-.42, -.88, 0); rig.add(tail);
+  const pod = M(new T.CapsuleGeometry(.04, .14, 6, 12), MAT.dark()); pod.rotation.z = Math.PI / 2; pod.position.set(-.1, -.88, 0); rig.add(pod); const prop = M(new T.TorusGeometry(.05, .012, 6, 16), MAT.metal()); prop.rotation.y = Math.PI / 2; prop.position.set(-.22, -.88, 0); rig.add(prop);
+  const p = figure(0xf43f5e, 0x111827); p.position.set(0, .05, 0); p.rotation.y = Math.PI / 2; p.userData.legs.forEach((l, i) => { l.rotation.x = (i ? -1 : 1) * .35; }); p.userData.arms.forEach((a, i) => a.rotation.x = (i ? -1 : 1) * .7); rig.add(p);
+  const spray = particles(160, 0xffffff, .09, { opacity: .8 }); root.add(spray);
+  const [aL, aW] = kit(root, .35, 2);
+  const mk = { wing: fw, airfoil: fw, hull: board, lift: aL.userData.tip, weight: aW.userData.tip, body: marker(rig, 0, 1, 0), motor: pod, drag: aW.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "water", water: true, labels: [{ obj: aL.userData.tip, text: () => "Foil lift", col: "#22d3ee" }, { obj: aW.userData.tip, text: () => "Rider + board", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(2.4, 1.6, 4.2), target: new T.Vector3(0, .5, 0), fitW: 2.4 },
+    update(R, dt, t) { const ok = R.ok, tgt = ok ? .75 : -.05; st.y = st.y == null ? tgt : st.y + (tgt - st.y) * Math.min(1, dt * 1.5); rig.position.y = st.y + (ok ? Math.sin(t * 1.7) * .03 : waveH(0, 0, t) * .4); rig.rotation.z = ok ? .04 : (waveH(1, 0, t) - waveH(-1, 0, t)) * .1; prop.rotation.x += 30 * dt;
+      spinPts(spray, dt, (q, i) => { if (Math.random() < .5) { const x = ok ? -.15 : .6; q.pos[i * 3] = x; q.pos[i * 3 + 1] = .05; q.pos[i * 3 + 2] = (Math.random() - .5) * .2; q.vel[i * 3] = -1.5 - Math.random(); q.vel[i * 3 + 1] = .6 + Math.random() * 1.2; q.vel[i * 3 + 2] = (Math.random() - .5) * 1.5; q.life[i] = .6; } else hide(q, i); },
+        (q, i, dt) => { q.vel[i * 3 + 1] -= 9.8 * dt; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(0, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; });
+      const y = rig.position.y; aL.userData.set(new T.Vector3(.15, y - .85, .45), UP, .6 * Math.min(2, R.margin)); aW.userData.set(new T.Vector3(.4, y + 1.2, .45), new T.Vector3(0, -1, 0), .6); return ok ? 5 : 2; } };
+};
+
+/* hovercraft: round deck on a rubber skirt, leaf blower blowing air underneath, rider sitting */
+B.hovercraft = (R, st) => {
+  const root = new T.Group(), hc = new T.Group(); root.add(hc); const D = Math.max(.6, Math.min(3, R.role("size", 1.5))), r = D / 2;
+  const skirt = M(new T.TorusGeometry(r * .93, .09, 12, 64).rotateX(Math.PI / 2), new T.MeshStandardMaterial({ color: 0x111827, roughness: .7 })); skirt.position.y = .09; hc.add(skirt);
+  const deck = M(new T.CylinderGeometry(r, r, .03, 64), new T.MeshStandardMaterial({ map: TEX.wood([2, 2]), roughness: .7 })); deck.position.y = .19; hc.add(deck);
+  const blower = new T.Group(); blower.position.set(-r * .55, .21, 0); hc.add(blower); const bb = M(new T.BoxGeometry(.38, .24, .2), MAT.paint(0xf97316)); bb.position.y = .12; blower.add(bb); const nz = M(new T.CylinderGeometry(.06, .06, .2, 16), MAT.dark()); nz.position.set(.1, -.02, 0); blower.add(nz);
+  const p = figure(0x7c3aed, 0x1f2937); p.position.set(r * .15, .02, 0); p.userData.legs.forEach(l => { l.rotation.z = 1.45; }); p.position.y = -.58; p.userData.arms.forEach(a => a.rotation.z = .9); hc.add(p);
+  const chair = M(new T.BoxGeometry(.4, .06, .45), MAT.dark()); chair.position.set(r * .1, .32, 0); hc.add(chair);
+  const air = particles(220, 0xe2e8f0, .07, { opacity: .55 }); root.add(air);
+  const [aU, aD] = kit(root, .3, 2);
+  const mk = { hull: deck, motor: blower, body: marker(hc, 0, .8, 0), buoyancy: aU.userData.tip, lift: aU.userData.tip, weight: aD.userData.tip, load: marker(hc, 0, 1, 0) };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aU.userData.tip, text: () => "Air cushion", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Weight", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(D * .9 + 1.2, 1.6, D * 1.2 + 2), target: new T.Vector3(0, .45, 0), fitW: D * .75 + .9 },
+    update(R, dt, t) { const ok = R.ok, tgt = ok ? .06 : 0; st.y = st.y == null ? 0 : st.y + (tgt - st.y) * Math.min(1, dt * 3); hc.position.y = st.y + (ok ? Math.sin(t * 6) * .004 : 0); hc.rotation.y = ok ? t * .25 : 0; hc.position.x = ok ? Math.sin(t * .4) * .3 : 0;
+      spinPts(air, dt, (q, i) => { if (Math.random() < (ok ? .6 : .2)) { const a = Math.random() * 6.28; q.pos[i * 3] = hc.position.x + Math.cos(a) * r; q.pos[i * 3 + 1] = .03; q.pos[i * 3 + 2] = Math.sin(a) * r; q.vel[i * 3] = Math.cos(a) * (ok ? 1.5 : .4); q.vel[i * 3 + 2] = Math.sin(a) * (ok ? 1.5 : .4); q.life[i] = .6; } else hide(q, i); },
+        (q, i, dt) => { q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; q.pos[i * 3 + 1] += .1 * dt; });
+      aU.userData.set(new T.Vector3(hc.position.x - r - .25, .05, 0), UP, .5 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(hc.position.x + r + .25, 1.1, 0), new T.Vector3(0, -1, 0), .5); return 0; } };
+};
+
+/* underwater drone (ROV): open frame, yellow float, thrusters, lights, tether */
+B.rov = (R, st) => {
+  const root = new T.Group(), rv = new T.Group(); root.add(rv); rv.position.y = 3;
+  const frame = MAT.paint(0x111827); [[-.22, -.15], [.22, -.15], [-.22, .15], [.22, .15]].forEach(([x, z]) => { rv.add(rod(new T.Vector3(x, -.12, z), new T.Vector3(x, .12, z), .012, frame)); });
+  [[-.12], [.12]].forEach(([y]) => { [-.15, .15].forEach(z => rv.add(rod(new T.Vector3(-.22, y, z), new T.Vector3(.22, y, z), .012, frame))); [-.22, .22].forEach(x => rv.add(rod(new T.Vector3(x, y, -.15), new T.Vector3(x, y, .15), .012, frame))); });
+  const foam = M(new T.BoxGeometry(.46, .08, .34), MAT.paint(0xfacc15)); foam.position.y = .17; rv.add(foam);
+  const tubeE = M(new T.CylinderGeometry(.06, .06, .3, 24), new T.MeshPhysicalMaterial({ color: 0xa5b4fc, roughness: .05, transparent: true, opacity: .5 })); tubeE.rotation.z = Math.PI / 2; rv.add(tubeE);
+  const dome = M(new T.SphereGeometry(.062, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), MAT.glass()); dome.rotation.z = -Math.PI / 2; dome.position.x = .15; rv.add(dome);
+  const n = Math.max(2, Math.min(4, Math.round(R.role("thrusters", 4)))), props = [];
+  [[.18, .19, .6], [.18, -.19, -.6], [-.18, .19, -.6], [-.18, -.19, .6]].slice(0, n).forEach(([x, z, a]) => { const th = new T.Group(); th.position.set(x, -.02, z); th.rotation.y = a; rv.add(th); const sh = M(new T.CylinderGeometry(.045, .045, .07, 20, 1, true), new T.MeshStandardMaterial({ color: 0x1f2937, side: T.DoubleSide })); sh.rotation.z = Math.PI / 2; th.add(sh); const pr = M(new T.BoxGeometry(.005, .07, .015), MAT.metal()); th.add(pr); props.push(pr); });
+  [-.1, .1].forEach(z => { const lt = M(new T.CylinderGeometry(.022, .022, .03, 14), MAT.glow(0xfff7d6, 1), false); lt.rotation.z = Math.PI / 2; lt.position.set(.23, .05, z); rv.add(lt); });
+  const spot = new T.SpotLight(0xfff3c4, 8, 10, .5, .6, 1); spot.position.set(.25, .05, 0); spot.target.position.set(3, -1, 0); rv.add(spot, spot.target);
+  const tg = new T.BufferGeometry().setFromPoints([...Array(20)].map(() => new T.Vector3())), tether = new T.Line(tg, new T.LineBasicMaterial({ color: 0xf97316 })); root.add(tether);
+  const flow = particles(220, 0xdff6ff, .05, { opacity: .6 }); root.add(flow);
+  const [aT, aD] = kit(root, .2, 2);
+  const mk = { hull: tubeE, body: foam, motor: props[0] || foam, thrust: aT.userData.tip, drag: aD.userData.tip, window: dome, propeller: props[0] || foam };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: aT.userData.tip, text: () => "Thrusters", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Current pushes back", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(.9, 3.5, 1.6), target: new T.Vector3(0, 3, 0), fitW: 1 },
+    update(R, dt, t) { const ok = R.ok, drift = ok ? 0 : (1 - R.frac) * 1.2; st.x = st.x == null ? 0 : st.x + (-drift - st.x) * Math.min(1, dt * .6); rv.position.x = st.x + Math.sin(t * .7) * .02; rv.position.y = 3 + Math.sin(t * .9) * .03; rv.rotation.y = Math.sin(t * .5) * .05; props.forEach(pr => pr.rotation.x += 40 * dt);
+      const tp = tg.attributes.position; for (let i = 0; i < 20; i++) { const u = i / 19; tp.setXYZ(i, rv.position.x - .2 - u * 2.5 + Math.sin(u * 3 + t) * .05, rv.position.y + .1 + u * u * 4, Math.sin(u * 2 + t * .5) * .1); } tp.needsUpdate = true;
+      spinPts(flow, dt, (q, i) => { if (Math.random() < .3) { q.pos[i * 3] = 2.5; q.pos[i * 3 + 1] = 2 + Math.random() * 2; q.pos[i * 3 + 2] = (Math.random() - .5) * 2; q.life[i] = 3; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3] -= 1.6 * dt; });
+      aT.userData.set(new T.Vector3(rv.position.x + .3, rv.position.y + .35, .3), new T.Vector3(1, 0, 0), .35 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(rv.position.x + .9, rv.position.y - .3, .3), new T.Vector3(-1, 0, 0), .35); return 0; } };
+};
+
+/* tidal turbine: three-blade rotor on a tripod on the sea floor */
+B.tidal = (R, st) => {
+  const root = new T.Group(), Dr = Math.max(4, Math.min(26, R.role("size", 18))), r = Dr / 2, hub = r + 3;
+  const base = new T.Group(); root.add(base); const steel = new T.MeshStandardMaterial({ color: 0x7a8a8f, metalness: .6, roughness: .6 });
+  [0, 1, 2].forEach(k => { const a = k * Math.PI * 2 / 3; base.add(rod(new T.Vector3(Math.cos(a) * r * .7, 0, Math.sin(a) * r * .7), new T.Vector3(0, hub * .45, 0), .35, steel)); const foot = M(new T.CylinderGeometry(.9, 1.1, .6, 16), steel); foot.position.set(Math.cos(a) * r * .7, .3, Math.sin(a) * r * .7); base.add(foot); });
+  const tw = M(new T.CylinderGeometry(.8, 1, hub, 24), steel); tw.position.y = hub / 2; base.add(tw);
+  const nac = M(new T.CapsuleGeometry(1.1, 4, 8, 20), MAT.paint(0xf59e0b)); nac.rotation.z = Math.PI / 2; nac.position.set(-.5, hub, 0); base.add(nac);
+  const rot = new T.Group(); rot.position.set(2.2, hub, 0); base.add(rot); rot.add(M(new T.SphereGeometry(1.2, 20, 16), MAT.paint(0xf59e0b)));
+  for (let k = 0; k < 3; k++) { const bg = airfoil({ span: r - 1, root: 1.6, tip: .5, th: .18, cam: .03, twist: -12, S: 16, C: 10 }); bg.rotateX(-Math.PI / 2); const b = M(bg, new T.MeshStandardMaterial({ color: 0xe5e7eb, roughness: .4 })); b.position.y = 1; const h = new T.Group(); h.rotation.x = k * Math.PI * 2 / 3; h.add(b); rot.add(h); }
+  const fish = particles(60, 0xffd27a, .35, { opacity: .9 }); root.add(fish); const flow = particles(300, 0xdff6ff, .2, { opacity: .5 }); root.add(flow);
+  const [aF] = kit(root, 1.2, 1);
+  const mk = { source: rot, converter: nac, load: nac, losses: marker(base, 0, hub + 2, 0), body: nac, wheels: rot, rotor: rot, drag: aF.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: aF.userData.tip, text: () => "Tidal current", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(Dr * 1.2 + 8, hub + 3, Dr * 1.3 + 10), target: new T.Vector3(0, hub * .8, 0), fitW: Dr * .8 + 5 },
+    update(R, dt, t) { const sp = Math.max(.15, Math.min(1.5, R.role("current", 2) / 2)); rot.rotation.x += sp * 1.2 * dt * (R.ok ? 1 : .6);
+      spinPts(flow, dt, (q, i) => { if (Math.random() < .3) { q.pos[i * 3] = -Dr - 8; q.pos[i * 3 + 1] = 1 + Math.random() * (hub + r); q.pos[i * 3 + 2] = (Math.random() - .5) * Dr * 1.5; q.life[i] = 6; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3] += sp * 6 * dt; });
+      spinPts(fish, dt, (q, i) => { q.pos[i * 3] = -Dr - 4 - Math.random() * 6; q.pos[i * 3 + 1] = 2 + Math.random() * 4; q.pos[i * 3 + 2] = Dr * .9 + Math.random() * 3; q.life[i] = 10; }, (q, i, dt) => { q.pos[i * 3] += 2 * dt; q.pos[i * 3 + 1] += Math.sin(t * 2 + i) * dt * .3; });
+      aF.userData.set(new T.Vector3(-r - 6, hub + r * .6, 0), new T.Vector3(1, 0, 0), 4 * Math.min(1.6, sp)); return 0; } };
+};
+
+/* floating solar: rows of panels on floats on a lake, cable to the shore */
+B.floatsolar = (R, st) => {
+  const root = new T.Group(), A = Math.max(.5, R.role("area", 5)), rows = Math.round(Math.min(16, 5 + A * .9)), cols = Math.round(Math.min(20, 7 + A)), farm = new T.Group(); root.add(farm);
+  const pT = solarTex(); const pm = new T.MeshPhysicalMaterial({ map: pT, roughness: .15, metalness: .4, clearcoat: 1 }), fl = new T.MeshStandardMaterial({ color: 0xe5e7eb, roughness: .8 });
+  const gp = new T.BoxGeometry(1.7, .05, 1), gf = new T.BoxGeometry(1.9, .25, 1.4); const NP = rows * cols, pans = new T.InstancedMesh(gp, pm, NP), flts = new T.InstancedMesh(gf, fl, NP); pans.castShadow = flts.receiveShadow = true;
+  const mx = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(-.2, 0, 0)), q0 = new T.Quaternion(), s1 = new T.Vector3(1, 1, 1); let k = 0;
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) { const x = (j - cols / 2) * 2.05, z = (i - rows / 2) * 1.6; mx.compose(new T.Vector3(x, .42, z), q, s1); pans.setMatrixAt(k, mx); mx.compose(new T.Vector3(x, .1, z), q0, s1); flts.setMatrixAt(k, mx); k++; }
+  farm.add(pans, flts); const W = cols * 2.05, Dd = rows * 1.6;
+  const shore = M(new T.BoxGeometry(80, 1.2, 30), new T.MeshStandardMaterial({ map: TEX.grass([10, 4]), roughness: 1 }), false, true); shore.position.set(0, .2, -Dd / 2 - 22); root.add(shore);
+  const inv = M(new T.BoxGeometry(2.4, 2, 1.6), new T.MeshStandardMaterial({ color: 0xd1d5db, metalness: .5, roughness: .4 })); inv.position.set(W * .3, 1.8, -Dd / 2 - 9); root.add(inv);
+  root.add(tube([[W / 2 - 1, .3, -Dd / 2 + .5], [W * .4, .2, -Dd / 2 - 3], [W * .32, .9, -Dd / 2 - 8.2]], .12, MAT.rubber()));
+  [-1, 1].forEach(sd => { const pole = M(new T.CylinderGeometry(.15, .2, 9, 10), MAT.paint(0x8b5e34)); pole.position.set(W * .3 + sd * 4 + 6, 4.5, -Dd / 2 - 12); root.add(pole); });
+  const sparkle = particles(80, 0xfff7c2, .25, { add: true, opacity: .9 }); root.add(sparkle);
+  const [aS] = kit(root, .9, 1);
+  const mk = { source: farm, converter: inv, load: inv, losses: marker(inv, 0, 1.5, 0), body: farm, goal: inv };
+  return { root, anchors: mk, follow: null, ground: "water", water: true, labels: [{ obj: aS.userData.tip, text: () => "Sunlight", col: "#fbbf24" }, { obj: marker(inv, 0, 1.4, 0), text: () => "To the town", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(W * .7, Math.max(W, Dd) * .55 + 4, W * .8 + 6), target: new T.Vector3(0, 0, -Dd * .15), fitW: W * .62 + 3 },
+    update(R, dt, t) { farm.position.y = waveH(0, 0, t) * .15; farm.rotation.z = (waveH(3, 0, t) - waveH(-3, 0, t)) * .01;
+      spinPts(sparkle, dt, (q, i) => { if (Math.random() < .05) { q.pos[i * 3] = (Math.random() - .5) * W; q.pos[i * 3 + 1] = .6; q.pos[i * 3 + 2] = (Math.random() - .5) * Dd; q.life[i] = .3; } else hide(q, i); }, () => {});
+      aS.userData.set(new T.Vector3(-W * .2, 9, 0), new T.Vector3(.3, -1, .2).normalize(), 5); return 0; } };
+};
+
+/* land yacht: three wheels, a long frame, a tall sail, pilot lying down, racing on sand */
+B.landyacht = (R, st) => {
+  const root = new T.Group(), ly = new T.Group(); root.add(ly); const A = Math.max(2, Math.min(12, R.role("area", 6))), mh = Math.sqrt(A * 3.2), fw = A * 2 / mh;
+  const fr = MAT.paint(0x1d4ed8); ly.add(rod(new T.Vector3(-1.6, .45, 0), new T.Vector3(1.8, .45, 0), .06, fr)); ly.add(rod(new T.Vector3(-1.3, .4, -1.3), new T.Vector3(-1.3, .4, 1.3), .06, fr));
+  const wheels = []; [[1.85, 0], [-1.3, -1.35], [-1.3, 1.35]].forEach(([x, z]) => { const w = M(new T.CylinderGeometry(.33, .33, .14, 24).rotateX(Math.PI / 2), MAT.rubber()); w.position.set(x, .33, z); ly.add(w); wheels.push(w); });
+  const seat = M(new T.CapsuleGeometry(.25, 1.2, 6, 12), MAT.paint(0x111827)); seat.rotation.z = Math.PI / 2; seat.position.set(-.3, .55, 0); ly.add(seat);
+  const p = figure(0xef4444, 0x1f2937); p.rotation.z = -Math.PI / 2 + .25; p.position.set(-1.1, .75, 0); ly.add(p);
+  const mast = M(new T.CylinderGeometry(.04, .06, mh, 12), MAT.metal()); mast.position.set(.6, .45 + mh / 2, 0); ly.add(mast);
+  const ss = new T.Shape(); ss.moveTo(0, 0); ss.lineTo(-fw, 0); ss.quadraticCurveTo(-fw * .3, mh * .4, 0, mh); ss.closePath(); const sail = M(new T.ShapeGeometry(ss, 20), new T.MeshStandardMaterial({ color: 0xfacc15, roughness: .7, side: T.DoubleSide })); sail.position.set(.6, .7, 0); ly.add(sail);
+  const boom = M(new T.CylinderGeometry(.03, .03, fw, 8), MAT.metal()); boom.rotation.z = Math.PI / 2; boom.position.set(.6 - fw / 2, .7, 0); ly.add(boom);
+  const sand = particles(160, 0xd6b38a, .1, { opacity: .6 }); root.add(sand); const wind = particles(120, 0xffffff, .08, { opacity: .5 }); root.add(wind);
+  const [aF, aD] = kit(root, .45, 2);
+  const mk = { sail: sail, wing: sail, wheels: wheels[0], body: marker(ly, 0, 1.2, 0), drag: aD.userData.tip, goal: aF.userData.tip, speed: marker(ly, 0, mh + 1, 0), motor: sail };
+  return { root, anchors: mk, follow: null, ground: "grass", moving: true, labels: [{ obj: aF.userData.tip, text: () => "Sail drive", col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Sand + air drag", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(3, mh * .55 + 2, mh + 6), target: new T.Vector3(0, mh * .45, 0), fitW: Math.max(4.2, mh * .75) },
+    update(R, dt, t) { const v = R.ok ? 13 : 3 * R.frac; wheels.forEach(w => w.rotation.z -= v / .33 * dt); ly.rotation.x = R.ok ? -.04 - Math.sin(t * 1.3) * .015 : 0; sail.rotation.y = .35; boom.rotation.y = .35; boom.position.set(.6 - Math.cos(.35) * fw / 2, .7, Math.sin(.35) * fw / 2);
+      spinPts(sand, dt, (q, i) => { if (Math.random() < .3 * v / 13) { const w = wheels[1 + (i % 2)]; q.pos[i * 3] = w.position.x; q.pos[i * 3 + 1] = .05; q.pos[i * 3 + 2] = w.position.z; q.vel[i * 3] = -2 - Math.random() * 2; q.vel[i * 3 + 1] = .6 + Math.random(); q.life[i] = .7; } else hide(q, i); }, (q, i, dt) => { q.vel[i * 3 + 1] -= 9.8 * dt; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(.02, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); });
+      spinPts(wind, dt, (q, i) => { if (Math.random() < .2) { q.pos[i * 3] = (Math.random() - .5) * 8; q.pos[i * 3 + 1] = .5 + Math.random() * mh; q.pos[i * 3 + 2] = -6; q.life[i] = 1.5; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3 + 2] += 7 * dt; q.pos[i * 3] -= v * .3 * dt; });
+      aF.userData.set(new T.Vector3(1.2, mh * .5, .8), new T.Vector3(1, 0, 0), 1.2 * Math.min(2, R.margin)); aD.userData.set(new T.Vector3(3.2, .6, .8), new T.Vector3(-1, 0, 0), 1.1); return v; } };
+};
+
+/* zipline: high platform, cable, low platform, rider in a harness rolling down */
+B.zipline = (R, st) => {
+  const root = new T.Group(), H = Math.max(3, Math.min(60, R.role("height", 25))), Lz = Math.max(20, Math.min(500, R.role("span", 300))), Lv = Math.min(70, 18 + Lz * .12), Hv = Math.min(26, 4 + H * .55);
+  const wood = new T.MeshStandardMaterial({ map: TEX.wood([1, 4]), color: 0xb08860, roughness: .8 });
+  const tower = (x, h) => { const g = new T.Group(); g.position.set(x, 1.6, 0); root.add(g); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => g.add(rod(new T.Vector3(a * 1.3, 0, b * 1.3), new T.Vector3(a * .9, h, b * .9), .26, wood))); const pf = M(new T.BoxGeometry(2.8, .25, 2.8), wood, true, true); pf.position.y = h; g.add(pf); for (let y = 2; y < h - 1; y += 3) [-1, 1].forEach(b => g.add(rod(new T.Vector3(-1.2, y, b * 1.2), new T.Vector3(1.2, y + 2.4, b * 1.2), .07, wood))); return g; };
+  const ks = Math.min(1, 34 / Lv); root.scale.setScalar(ks);
+  const rockM = new T.MeshStandardMaterial({ color: 0x6b7280, roughness: 1, flatShading: true }), topM = new T.MeshStandardMaterial({ map: TEX.grass([3, 3]), roughness: 1 });
+  [[-Lv / 2, 1], [Lv / 2, -1]].forEach(([x, sd]) => { const cl = M(new T.CylinderGeometry(7, 9, 6, 9), rockM, true, true); cl.position.set(x + sd * -2, -1.5, 0); root.add(cl); const tp = M(new T.CylinderGeometry(7, 7, .3, 9), topM, false, true); tp.position.set(x + sd * -2, 1.5, 0); root.add(tp); });
+  tower(-Lv / 2, Hv + 1); tower(Lv / 2, 3);
+  const A0 = new T.Vector3(-Lv / 2, Hv + 4.6, 0), B0 = new T.Vector3(Lv / 2, 6.6, 0); const sag = Lv * .025, cab = u => new T.Vector3(A0.x + (B0.x - A0.x) * u, A0.y + (B0.y - A0.y) * u - sag * 4 * u * (1 - u), 0);
+  root.add(M(new T.TubeGeometry(new T.CatmullRomCurve3([...Array(30)].map((_, i) => cab(i / 29))), 60, .07, 6), MAT.metal()));
+  [A0, B0].forEach(P => { const post = M(new T.CylinderGeometry(.12, .12, 2.2, 10), MAT.metal()); post.position.set(P.x, P.y - 1, 0); root.add(post); });
+  const rider = new T.Group(); root.add(rider); rider.scale.setScalar(3.2); const trol = M(new T.BoxGeometry(.3, .16, .12), MAT.paint(0xef4444)); rider.add(trol); rider.add(rod(new T.Vector3(0, 0, 0), new T.Vector3(0, -.9, 0), .015, MAT.dark()));
+  const p = figure(0x22c55e, 0x1f2937); p.position.y = -2.4; p.userData.arms.forEach(a => a.rotation.z = 2.9); p.userData.legs.forEach(l => l.rotation.z = -.9); rider.add(p);
+  const [aV, aG] = kit(root, .5, 2);
+  const mk = { cable: trol, body: marker(rider, 0, -1.4, 0), top: marker(root, A0.x, A0.y + 1, 0), base: marker(root, B0.x, 3, 0), speed: aV.userData.tip, goal: marker(root, B0.x, B0.y + 2, 0), load: aG.userData.tip, drag: aG.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "water", water: true, labels: [{ obj: marker(root, B0.x, B0.y + 1.5, 0), text: () => "Finish", col: "#34d399" }, { obj: aG.userData.tip, text: () => "Gravity pulls you down", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(-Lv * .05 * ks, (Hv * .7 + 2) * ks, (Lv * .8 + 4) * ks), target: new T.Vector3(0, Hv * .48 * ks, 0), fitW: (Lv * .56 + 2) * ks },
+    update(R, dt, t) { const stopAt = R.ok ? 1 : Math.max(.15, Math.min(.85, R.frac)); st.u = st.u == null ? 0 : st.u + dt * (st.u < stopAt ? .12 : 0); if (st.u >= stopAt) { st.w = (st.w || 0) + dt; if (st.w > 2) { st.u = 0; st.w = 0; } } const u = Math.min(st.u, stopAt);
+      const P = cab(u); rider.position.copy(P); rider.rotation.z = Math.atan2(B0.y - A0.y, B0.x - A0.x) * .3 + (st.u >= stopAt && !R.ok ? Math.sin(t * 3) * .1 : 0);
+      aV.userData.set(P.clone().add(new T.Vector3(.4, .5, .8)), new T.Vector3(1, (B0.y - A0.y) / (B0.x - A0.x), 0).normalize(), 2.4 * (st.u >= stopAt ? .1 : 1)); aG.userData.set(P.clone().add(new T.Vector3(0, 5.5, .8)), new T.Vector3(0, -1, 0), 3); return 0; } };
+};
+
+/* TV on a stand: screen shows a picture when there is enough power */
+function buildTV() { const g = new T.Group(); const stand = M(new T.BoxGeometry(2.2, .7, .7), new T.MeshStandardMaterial({ map: TEX.wood([1, 1]), roughness: .6 })); stand.position.y = .35; g.add(stand);
+  const frame = M(new T.BoxGeometry(2.4, 1.4, .08), MAT.dark()); frame.position.y = 1.55; g.add(frame); const neck = M(new T.BoxGeometry(.2, .3, .1), MAT.dark()); neck.position.y = .82; g.add(neck);
+  const c = document.createElement("canvas"); c.width = 320; c.height = 180; const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; const scr = M(new T.PlaneGeometry(2.28, 1.28), new T.MeshBasicMaterial({ map: tx }), false); scr.position.set(0, 1.55, .045); g.add(scr);
+  let last = -1; g.userData.set = f => { const k = f >= 1 ? 1 : 0; if (k === last) return; last = k; const x = c.getContext("2d"); if (k) { const gr = x.createLinearGradient(0, 0, 0, 180); gr.addColorStop(0, "#38bdf8"); gr.addColorStop(.6, "#bae6fd"); gr.addColorStop(.61, "#4ade80"); gr.addColorStop(1, "#15803d"); x.fillStyle = gr; x.fillRect(0, 0, 320, 180); x.fillStyle = "#fde047"; x.beginPath(); x.arc(250, 45, 22, 0, 7); x.fill(); x.fillStyle = "#fff"; x.font = "bold 20px sans-serif"; x.fillText("▶ ON", 14, 30); }
+    else { x.fillStyle = "#0b1220"; x.fillRect(0, 0, 320, 180); x.fillStyle = "#fbbf24"; x.font = "bold 22px sans-serif"; x.textAlign = "center"; x.fillText("Not enough power", 160, 98); x.textAlign = "left"; } tx.needsUpdate = true; }; return g; }
+
+/* overshot water wheel: wooden flume pours onto buckets, mill house behind */
+B.waterwheel = (R, st) => {
+  const root = new T.Group(), H = Math.max(1, Math.min(8, R.role("height", 3))), Rw = H / 2, cx = 0, cy = Rw + .3;
+  const wood = new T.MeshStandardMaterial({ map: TEX.wood([2, 1]), color: 0xa47148, roughness: .8 }), dark = new T.MeshStandardMaterial({ map: TEX.wood([2, 1]), color: 0x6b4a2b, roughness: .9 });
+  const wheel = new T.Group(); wheel.position.set(cx, cy, 0); root.add(wheel); const Wd = Math.max(.6, Rw * .5);
+  [-1, 1].forEach(sd => { const rim = M(new T.TorusGeometry(Rw, .07, 8, 48), dark); rim.position.z = sd * Wd / 2; wheel.add(rim); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; wheel.add(rod(new T.Vector3(0, 0, sd * Wd / 2), new T.Vector3(Math.cos(a) * Rw, Math.sin(a) * Rw, sd * Wd / 2), .05, dark)); } });
+  const NB = 16; for (let k = 0; k < NB; k++) { const a = k / NB * Math.PI * 2, b = M(new T.BoxGeometry(Rw * .32, .05, Wd), wood); b.position.set(Math.cos(a) * Rw * .9, Math.sin(a) * Rw * .9, 0); b.rotation.z = a + .5; wheel.add(b); }
+  const axle = M(new T.CylinderGeometry(.12, .12, Wd + 1.4, 16).rotateX(Math.PI / 2), MAT.dark()); wheel.add(axle);
+  const fl = M(new T.BoxGeometry(5, .35, Wd * .9), wood); fl.position.set(-2.4, cy + Rw + .45, 0); root.add(fl); [-1, 1].forEach(sd => root.add(rod(new T.Vector3(-3.8, 0, sd * Wd * .4), new T.Vector3(-3.8, cy + Rw + .3, sd * Wd * .4), .07, dark)));
+  const fw = M(new T.BoxGeometry(5, .06, Wd * .7), new T.MeshPhysicalMaterial({ color: 0x3b82f6, roughness: .05, transparent: true, opacity: .8 }), false); fw.position.set(-2.4, cy + Rw + .64, 0); root.add(fw);
+  const mill = new T.Group(); mill.position.set(Rw + 2.4, 0, -Wd - 1.6); root.add(mill); const wall = M(new T.BoxGeometry(4, 3.2, 4), new T.MeshStandardMaterial({ color: 0xd6cfc2, roughness: .95 }), true, true); wall.position.y = 1.6; mill.add(wall);
+  const roofG = new T.ConeGeometry(3.3, 1.8, 4); roofG.rotateY(Math.PI / 4); const roof = M(roofG, new T.MeshStandardMaterial({ color: 0x7c2d12, roughness: .8 })); roof.position.y = 4.1; mill.add(roof);
+  const stream = M(new T.PlaneGeometry(30, Wd + 1.6).rotateX(-Math.PI / 2), new T.MeshPhysicalMaterial({ color: 0x2f7fb5, roughness: .08, clearcoat: 1, transparent: true, opacity: .9 }), false, true); stream.position.set(4, .08, 0); root.add(stream);
+  const pour = particles(260, 0x93c5fd, .09, { opacity: .85 }); root.add(pour);
+  const mk = { source: fl, converter: wheel, load: mill, losses: marker(wheel, 0, Rw + .6, 0), body: wheel, wheels: wheel, rotor: wheel };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: marker(fl, -1.5, .6, 0), text: () => "Falling water", col: "#22d3ee" }, { obj: marker(mill, 0, 3.6, 0), text: () => "Mill", col: "#fbbf24" }],
+    cam: { pos: new T.Vector3(3.5, cy + 2.5, Rw * 2.2 + 8), target: new T.Vector3(0, cy, 0), fitW: Rw * 1.7 + 3.2 },
+    update(R, dt, t) { const sp = R.ok ? 1 : Math.max(.15, R.frac); wheel.rotation.z -= sp * .8 * dt;
+      spinPts(pour, dt, (q, i) => { if (Math.random() < .6) { q.pos[i * 3] = .1 + Math.random() * .2 - Rw * .15; q.pos[i * 3 + 1] = cy + Rw + .55; q.pos[i * 3 + 2] = (Math.random() - .5) * Wd * .6; q.vel[i * 3] = .6; q.vel[i * 3 + 1] = 0; q.life[i] = 1.2; } else hide(q, i); },
+        (q, i, dt) => { q.vel[i * 3 + 1] -= 9.8 * dt * .5; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(.1, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); if (q.pos[i * 3 + 1] < cy + Rw * .2 && q.pos[i * 3] < Rw * 1.1) q.vel[i * 3] = 1.5; });
+      return 0; } };
+};
+
+/* solar still: black basin of salty water under a sloped glass roof; drops run into a jug */
+B.still = (R, st) => {
+  const root = new T.Group(), A = Math.max(.3, Math.min(5, R.role("area", 2))), w = Math.sqrt(A * 2), d = A / w;
+  const box = new T.Group(); root.add(box); const wood = new T.MeshStandardMaterial({ map: TEX.wood([1, 1]), roughness: .8 });
+  const base = M(new T.BoxGeometry(w + .2, .25, d + .2), wood, true, true); base.position.y = .125; box.add(base);
+  const basin = M(new T.BoxGeometry(w, .06, d), new T.MeshStandardMaterial({ color: 0x0b0b0b, roughness: .6 })); basin.position.y = .28; box.add(basin);
+  const sea = M(new T.BoxGeometry(w * .98, .03, d * .98), new T.MeshPhysicalMaterial({ color: 0x14532d, roughness: .05, transparent: true, opacity: .7, clearcoat: 1 }), false); sea.position.y = .32; box.add(sea);
+  const hb = .9, hf = .35; [-1, 1].forEach(sd => { const sh = new T.Shape(); sh.moveTo(-d / 2, 0); sh.lineTo(d / 2, 0); sh.lineTo(d / 2, hf); sh.lineTo(-d / 2, hb); sh.closePath(); const s = M(new T.ShapeGeometry(sh), wood); s.rotation.y = Math.PI / 2; s.position.set(sd * w / 2, .25, 0); box.add(s); });
+  const back = M(new T.BoxGeometry(w, hb, .04), wood); back.position.set(0, .25 + hb / 2, -d / 2); box.add(back);
+  const glassL = Math.hypot(d, hb - hf), glass = M(new T.BoxGeometry(w, .02, glassL), new T.MeshPhysicalMaterial({ color: 0xdbeafe, roughness: .02, transparent: true, opacity: .25, clearcoat: 1, depthWrite: false }), false); glass.position.set(0, .25 + (hb + hf) / 2, 0); glass.rotation.x = Math.atan2(hb - hf, d); box.add(glass);
+  const gut = M(new T.CylinderGeometry(.04, .04, w, 10, 1, true, 0, Math.PI), MAT.metal()); gut.rotation.z = Math.PI / 2; gut.rotation.x = Math.PI; gut.position.set(0, .25 + hf - .04, d / 2 - .03); box.add(gut);
+  const jug = M(new T.CylinderGeometry(.16, .18, .45, 24), new T.MeshPhysicalMaterial({ color: 0xbfdbfe, transparent: true, opacity: .5, roughness: .05 })); jug.position.set(w / 2 + .35, .23, d / 2 + .1); root.add(jug);
+  const fresh = M(new T.CylinderGeometry(.15, .17, 1, 24), new T.MeshPhysicalMaterial({ color: 0x60a5fa, roughness: .05, transparent: true, opacity: .85 }), false); fresh.position.copy(jug.position); root.add(fresh);
+  root.add(tube([[w / 2, .25 + hf - .05, d / 2 - .03], [w / 2 + .2, .5, d / 2 + .05], [w / 2 + .35, .48, d / 2 + .1]], .025, MAT.rubber()));
+  const vap = particles(120, 0xffffff, .05, { opacity: .5 }); root.add(vap); const drops = particles(80, 0x93c5fd, .04, { opacity: .9 }); root.add(drops);
+  const [aS] = kit(root, .3, 1);
+  const mk = { source: glass, converter: basin, load: jug, losses: marker(box, 0, hb + .5, 0), body: box, inside: sea, outlet: jug };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aS.userData.tip, text: () => "Sun heats the salty water", col: "#fbbf24" }, { obj: marker(jug, 0, .4, 0), text: () => "Fresh water", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(w * .7 + 1, 1.8, d + 2.6), target: new T.Vector3(.2, .45, 0), fitW: w * .7 + .9 },
+    update(R, dt, t) { const f = Math.max(.08, Math.min(1, R.frac)); st.f = st.f == null ? .05 : (st.f + dt * .06 * f) % 1; fresh.scale.y = Math.max(.02, st.f * .42); fresh.position.y = .02 + st.f * .21;
+      spinPts(vap, dt, (q, i) => { if (Math.random() < .25) { q.pos[i * 3] = (Math.random() - .5) * w * .9; q.pos[i * 3 + 1] = .34; q.pos[i * 3 + 2] = (Math.random() - .5) * d * .8; q.life[i] = 1.2; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3 + 1] += .35 * dt; });
+      spinPts(drops, dt, (q, i) => { if (Math.random() < .15 * f) { q.pos[i * 3] = (Math.random() - .5) * w * .9; q.pos[i * 3 + 2] = -d / 2 + Math.random() * d * .2; q.pos[i * 3 + 1] = .25 + hb - .05; q.life[i] = 1.6; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3 + 2] += d * .6 * dt; q.pos[i * 3 + 1] = .25 + hb - .05 - (q.pos[i * 3 + 2] + d / 2) / d * (hb - hf); });
+      aS.userData.set(new T.Vector3(-w * .3, hb + 1.6, 0), new T.Vector3(.2, -1, .1).normalize(), .9); return 0; } };
+};
+
+/* earthquake: a 6-storey building on rubber isolators; the ground shakes */
+B.quake = (R, st) => {
+  const root = new T.Group(), gnd = new T.Group(); root.add(gnd); const iso = Math.max(1, R.role("iso", 1)), floors = 6, fh = 1.1, bw = 3.2;
+  const slab = M(new T.BoxGeometry(6, .5, 6), MAT.concrete([2, 2]), true, true); slab.position.y = -.25; gnd.add(slab);
+  const pads = []; if (iso > 1.3) [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]].forEach(([a, b]) => { const p = M(new T.CylinderGeometry(.35, .35, .3, 20), new T.MeshStandardMaterial({ color: 0x1f2937, roughness: .8 })); p.position.set(a * 1.2, .15, b * 1.2); gnd.add(p); pads.push(p); });
+  const base0 = iso > 1.3 ? .3 : 0; const bld = new T.Group(); bld.position.y = base0; root.add(bld); const fl = [];
+  for (let i = 0; i < floors; i++) { const f = new T.Group(); f.position.y = i * fh; bld.add(f); fl.push(f); const s = M(new T.BoxGeometry(bw, .14, bw), MAT.concrete([1, 1]), true, true); s.position.y = .07; f.add(s);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const c = M(new T.BoxGeometry(.22, fh, .22), MAT.concrete([1, 1])); c.position.set(a * (bw / 2 - .15), fh / 2, b * (bw / 2 - .15)); f.add(c); });
+    const gl = M(new T.BoxGeometry(bw - .3, fh - .2, bw - .3), new T.MeshPhysicalMaterial({ color: 0x7dd3fc, roughness: .05, transparent: true, opacity: .45 })); gl.position.y = fh / 2 + .05; f.add(gl); }
+  const roof = M(new T.BoxGeometry(bw + .1, .2, bw + .1), MAT.concrete([1, 1])); roof.position.y = floors * fh + .1; bld.add(roof);
+  const dust = particles(120, 0xb8a58c, .25, { opacity: .5 }); root.add(dust);
+  const [aE, aS] = kit(root, .4, 2);
+  const mk = { base: marker(gnd, 0, 0, 0), top: marker(bld, 0, floors * fh, 0), stress: fl[0], load: aE.userData.tip, body: marker(bld, 0, floors * fh / 2, 0), cable: fl[1] };
+  return { root, anchors: mk, follow: null, ground: "grass", labels: [{ obj: aE.userData.tip, text: () => "Ground shaking", col: "#fb7185" }, { obj: marker(bld, 0, floors * fh + .6, 0), text: () => iso > 1.3 ? "On rubber isolators" : "Fixed to the ground", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(6, floors * fh * .7 + 2, 10), target: new T.Vector3(0, floors * fh * .45, 0), fitW: 5.6 },
+    update(R, dt, t) { const ok = R.ok, sh = Math.sin(t * 9) * .12 + Math.sin(t * 13.7) * .06; gnd.position.x = sh; const k = ok ? .25 : 1.2; bld.position.x = sh * (iso > 1.3 ? .25 : 1);
+      fl.forEach((f, i) => { const u = (i + 1) / floors; f.position.x = Math.sin(t * 9 - .6) * .1 * k * u * (iso > 1.3 ? .6 : 1.6); f.rotation.z = -Math.cos(t * 9 - .6) * .02 * k * (iso > 1.3 ? .6 : 1.6); }); roof.position.x = fl[floors - 1].position.x;
+      spinPts(dust, dt, (q, i) => { if (!ok && Math.random() < .2) { q.pos[i * 3] = (Math.random() - .5) * 5; q.pos[i * 3 + 1] = .1; q.pos[i * 3 + 2] = (Math.random() - .5) * 5; q.life[i] = 1.5; } else hide(q, i); }, (q, i, dt) => { q.pos[i * 3 + 1] += .5 * dt; });
+      aE.userData.set(new T.Vector3(-3.6, .4, 2), new T.Vector3(1, 0, 0), 1.2 + Math.abs(sh) * 3); aS.userData.set(new T.Vector3(0, -5, 0), UP, .1); return 0; } };
+};
+
+/* trebuchet: A-frame, swinging arm with counterweight, sling throws a pumpkin to a target */
+B.trebuchet = (R, st) => {
+  const root = new T.Group(), Rg = Math.max(10, R.role("range", 200)), tgt = Math.max(30, R.role("goal", 200));
+  const sc = .35, k = 22 / Math.max(Rg, tgt) ; const wood = new T.MeshStandardMaterial({ map: TEX.wood([1, 3]), color: 0xa47148, roughness: .8 });
+  const tre = new T.Group(); root.add(tre); const piv = new T.Vector3(0, 3.2, 0);
+  [-1, 1].forEach(sd => { tre.add(rod(new T.Vector3(-1.6, 0, sd * .9), piv.clone().setZ(sd * .9), .12, wood)); tre.add(rod(new T.Vector3(1.6, 0, sd * .9), piv.clone().setZ(sd * .9), .12, wood)); tre.add(rod(new T.Vector3(-2.2, .1, sd * .9), new T.Vector3(2.2, .1, sd * .9), .12, wood)); });
+  const arm = new T.Group(); arm.position.copy(piv); tre.add(arm); const beam = M(new T.BoxGeometry(5.4, .18, .18), wood); beam.position.x = .95; arm.add(beam); const ax = M(new T.CylinderGeometry(.08, .08, 2, 12).rotateX(Math.PI / 2), MAT.dark()); arm.add(ax);
+  const cw = M(new T.BoxGeometry(.9, .9, .9), new T.MeshStandardMaterial({ map: TEX.wood([1, 1]), color: 0x5b4636 })); cw.position.set(-1.6, 0, 0); arm.add(cw);
+  const pump = M(new T.SphereGeometry(.22, 20, 14), new T.MeshStandardMaterial({ color: 0xf97316, roughness: .6 })); pump.scale.y = .85; root.add(pump); const stem = M(new T.CylinderGeometry(.03, .03, .1, 8), new T.MeshStandardMaterial({ color: 0x166534 })); stem.position.y = .2; pump.add(stem);
+  const slingL = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(), new T.Vector3()]), new T.LineBasicMaterial({ color: 0x3f2a1a })); root.add(slingL);
+  root.position.x = -(Math.max(Rg, tgt) * k + 3) * .45;
+  const tx = tgt * k + 3; const flag = new T.Group(); flag.position.set(tx, 0, 0); root.add(flag); const pole = M(new T.CylinderGeometry(.05, .05, 2.2, 8), MAT.metal()); pole.position.y = 1.1; flag.add(pole); const cl = M(new T.PlaneGeometry(.8, .5), new T.MeshStandardMaterial({ color: 0xef4444, side: T.DoubleSide })); cl.position.set(.4, 1.95, 0); flag.add(cl);
+  const ring = M(new T.RingGeometry(.8, 1, 40).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffffff, side: T.DoubleSide }), false); ring.position.set(tx, .03, 0); root.add(ring);
+  const splat = particles(60, 0xf97316, .15, { opacity: .9 }); root.add(splat);
+  const mk = { tank: cw, body: marker(tre, 0, 2, 0), engine: cw, thrust: pump, gravity: marker(arm, -1.6, -1.4, 0), goal: marker(flag, 0, 2.4, 0), drag: pump };
+  return { root, anchors: mk, follow: null, ground: "open", labels: [{ obj: marker(arm, -1.6, .2, 0), text: () => "Falling counterweight", col: "#fb7185" }, { obj: marker(flag, 0, 2.6, 0), text: () => Math.round(tgt) + " m target", col: "#fbbf24" }],
+    cam: { pos: new T.Vector3(0, 5.5, Math.min(20, tx * .55 + 9)), target: new T.Vector3(0, 2.4, 0), fitW: tx * .55 + 3 },
+    update(R, dt, t) { const per = 6.5; st.c = ((st.c == null ? 0 : st.c) + dt) % per; const c = st.c, land = Rg * k + 3, cock = Math.PI + .75, rel = 1.45; let th;
+      if (c < 1) th = cock; else if (c < 1.5) { const f = (c - 1) / .5; th = cock - (cock - rel) * f * f; } else if (c < 4.5) th = Math.PI / 2 + (rel - Math.PI / 2) * Math.cos((c - 1.5) * 3) * Math.exp(-(c - 1.5) * 1.5); else th = Math.PI / 2 + (cock - Math.PI / 2) * (c - 4.5) / 2;
+      arm.rotation.z = th; const tip = new T.Vector3(Math.cos(th) * 3.5, Math.sin(th) * 3.5, 0).add(piv);
+      if (c < 1.5) pump.position.set(tip.x - .6, Math.max(.22, tip.y - .9), 0);
+      else { const ft = Math.min(1, (c - 1.5) / 1.8); const x0 = tip.x, apex = Math.max(4, land * .22); pump.position.set(.6 + (land - .6) * ft, Math.max(.22, 6.6 * (1 - ft) + 4 * apex * ft * (1 - ft)), 0); }
+      if (c > 4.5 && c < 6.4) pump.position.set(land, .22, 0);
+      const sp = slingL.geometry.attributes.position; sp.setXYZ(0, tip.x, tip.y, tip.z); const sl = c < 1.5 ? pump.position : new T.Vector3(tip.x - .2, tip.y - 1, 0); sp.setXYZ(1, sl.x, sl.y, sl.z); sp.needsUpdate = true;
+      spinPts(splat, dt, (q, i) => { if (c > 3.3 && c < 3.5 && Math.random() < .8) { q.pos[i * 3] = land; q.pos[i * 3 + 1] = .2; q.pos[i * 3 + 2] = 0; q.vel[i * 3] = (Math.random() - .5) * 4; q.vel[i * 3 + 1] = 1 + Math.random() * 2; q.vel[i * 3 + 2] = (Math.random() - .5) * 4; q.life[i] = .8; } else hide(q, i); }, (q, i, dt) => { q.vel[i * 3 + 1] -= 9.8 * dt; q.pos[i * 3] += q.vel[i * 3] * dt; q.pos[i * 3 + 1] = Math.max(.03, q.pos[i * 3 + 1] + q.vel[i * 3 + 1] * dt); q.pos[i * 3 + 2] += q.vel[i * 3 + 2] * dt; });
+      return 0; } };
+};
+
+/* bungee: a bridge high over a river canyon; the jumper falls, stretches the cord and bounces */
+B.bungee = (R, st) => {
+  const root = new T.Group(), H = Math.max(20, R.role("height", 50)), drop = Math.max(5, R.role("drop", 40)), Lc = Math.max(5, R.role("cord", 15)), k = 22 / H;
+  const scn = new T.Group(); scn.scale.setScalar(k); root.add(scn);
+  const rock = new T.MeshStandardMaterial({ color: 0x8b6b4a, roughness: 1, flatShading: true }); [-1, 1].forEach(sd => { const c = M(new T.BoxGeometry(30, H + 4, 40), rock, true, true); c.position.set(sd * 24, (H + 4) / 2 - 4, 0); scn.add(c); const top = M(new T.BoxGeometry(30, .4, 40), new T.MeshStandardMaterial({ map: TEX.grass([6, 8]) }), false, true); top.position.set(sd * 24, H, 0); scn.add(top); });
+  const river = M(new T.PlaneGeometry(18, 40).rotateX(-Math.PI / 2), new T.MeshPhysicalMaterial({ color: 0x2f7fb5, roughness: .08, clearcoat: 1 }), false, true); river.position.y = .1; scn.add(river);
+  const deck = M(new T.BoxGeometry(20, .8, 3), MAT.concrete([4, 1]), true, true); deck.position.y = H + .4; scn.add(deck); [-1, 1].forEach(sd => { const rl = M(new T.BoxGeometry(20, .1, .1), MAT.metal()); rl.position.set(0, H + 1.8, sd * 1.4); scn.add(rl); });
+  const safe = M(new T.PlaneGeometry(18, .3), new T.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: .8, side: T.DoubleSide }), false); safe.position.set(0, 5, 1.6); scn.add(safe);
+  const jp = new T.Group(); scn.add(jp); const fig = figure(0xec4899, 0x111827); fig.rotation.z = Math.PI; fig.position.y = 1.75; jp.add(fig); jp.scale.setScalar(2.6); const jumpPf = M(new T.BoxGeometry(2, .3, 1.4), MAT.paint(0xf97316)); jumpPf.position.set(1.5, H + .5, 2.2); scn.add(jumpPf);
+  const cg = new T.BufferGeometry().setFromPoints([...Array(24)].map(() => new T.Vector3())), cord = new T.Line(cg, new T.LineBasicMaterial({ color: 0x22c55e })); scn.add(cord);
+  const [aG, aC] = kit(scn, 1.2, 2);
+  const mk = { top: marker(scn, 0, H + 1, 0), base: marker(scn, 0, 0, 0), cable: cord, load: aG.userData.tip, stress: aC.userData.tip, body: jp };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: aC.userData.tip, text: () => "Cord pulls back", col: "#22d3ee" }, { obj: marker(safe, 9, .6, 0), text: () => "Safety line", col: "#fbbf24" }],
+    cam: { pos: new T.Vector3(3, H * k * .62 + 2, 24), target: new T.Vector3(0, H * k * .5, 0), fitW: 9 },
+    update(R, dt, t) { const top = H + 1, low = top - drop, kM = 2 * 9.81 * drop / Math.max(1, Math.pow(drop - Lc, 2)); if (st.y == null || st.reset) { st.y = 0; st.v = 0; st.c = 0; st.reset = 0; }
+      st.c += dt; if (st.c > .8) { const n = 4; for (let i = 0; i < n; i++) { const h2 = dt / n, ext = st.y - Lc, a = 9.81 - (ext > 0 ? kM * ext : 0) - .25 * st.v * (ext > 0 ? 1 : 0); st.v += a * h2; st.y += st.v * h2; } } if (st.c > 10) st.reset = 1;
+      const feet = top - Math.max(0, st.y); jp.position.set(1.5, feet - 4.55, 2.2); const cp = cg.attributes.position, slack = Math.max(0, Lc - st.y); for (let i = 0; i < 24; i++) { const u = i / 23; cp.setXYZ(i, 1.5 * u, top + (feet - top) * u - Math.sin(u * Math.PI) * slack * .5, 1.5 + .7 * u); } cp.needsUpdate = true;
+      safe.material.color.set(low < 5 ? 0xef4444 : 0xfbbf24); aG.userData.set(new T.Vector3(5, feet - 1, 2.2), new T.Vector3(0, -1, 0), 4); aC.userData.set(new T.Vector3(-2, feet - 3, 2.2), UP, st.y > Lc ? Math.min(8, 1 + (st.y - Lc) * .3) : .1); return 0; } };
+};
+
+/* rope bridge: two posts each side, sagging main ropes, hanging planks, handrails */
+B.ropebridge = (R, st) => {
+  const root = new T.Group(), L = Math.max(8, Math.min(70, R.role("span", 40))), sagR = Math.max(.3, R.role("sag", 3)), k = Math.min(1, 34 / L); const scn = new T.Group(); scn.scale.setScalar(k); root.add(scn);
+  const rock = new T.MeshStandardMaterial({ color: 0x78716c, roughness: 1, flatShading: true }); [-1, 1].forEach(sd => { const c = M(new T.BoxGeometry(20, 16, 24), rock, true, true); c.position.set(sd * (L / 2 + 10), 2, 0); scn.add(c); const tp = M(new T.BoxGeometry(20, .3, 24), new T.MeshStandardMaterial({ map: TEX.grass([5, 6]) }), false, true); tp.position.set(sd * (L / 2 + 10), 10.15, 0); scn.add(tp); });
+  const river = M(new T.PlaneGeometry(L + 4, 60).rotateX(-Math.PI / 2), new T.MeshPhysicalMaterial({ color: 0x1f6f9a, roughness: .08, clearcoat: 1 }), false, true); river.position.y = -5; scn.add(river);
+  const wood = new T.MeshStandardMaterial({ map: TEX.wood([1, 1]), color: 0xb08860, roughness: .8 }), rope = new T.MeshStandardMaterial({ color: 0xc8a96e, roughness: .9 });
+  const y0 = 10.3, yAt = x => y0 - sagR * (1 - Math.pow(2 * x / L, 2)); [-1, 1].forEach(sx => [-1, 1].forEach(sz => { const p = M(new T.CylinderGeometry(.18, .22, 2.4, 10), wood); p.position.set(sx * L / 2, y0 + 1.2, sz * .8); scn.add(p); }));
+  const ropePts = (dy, z) => [...Array(32)].map((_, i) => { const x = -L / 2 + L * i / 31; return [x, yAt(x) + dy, z]; });
+  [-.8, .8].forEach(z => { scn.add(tube(ropePts(0, z), .05, rope, 80)); scn.add(tube(ropePts(1.1, z).map(([x, y, zz]) => [x, y + (1 - Math.pow(2 * x / L, 2)) * sagR * .15, zz]), .04, rope, 80)); });
+  for (let i = 0; i < Math.round(L / .5); i++) { const x = -L / 2 + .25 + i * .5; const pl = M(new T.BoxGeometry(.3, .06, 1.7), wood, true, true); pl.position.set(x, yAt(x) - .02, 0); scn.add(pl); if (i % 3 === 0) [-.8, .8].forEach(z => scn.add(rod(new T.Vector3(x, yAt(x), z), new T.Vector3(x, yAt(x) + 1.1 + (1 - Math.pow(2 * x / L, 2)) * sagR * .15, z), .015, rope))); }
+  const walker = figure(0x0ea5e9, 0x1f2937); scn.add(walker); walker.scale.setScalar(1.2);
+  const [aT, aW] = kit(scn, .6, 2);
+  const mk = { cable: marker(scn, -L / 2 + 1, y0, .8), stress: aT.userData.tip, load: aW.userData.tip, top: marker(scn, -L / 2, y0 + 2.4, .8), base: marker(scn, L / 2, y0, 0), body: marker(scn, 0, yAt(0) + 1, 0) };
+  return { root, anchors: mk, follow: null, ground: "none", labels: [{ obj: aT.userData.tip, text: () => "Rope tension", col: "#22d3ee" }, { obj: aW.userData.tip, text: () => "People + planks", col: "#fb7185" }],
+    cam: { pos: new T.Vector3(L * .2 * k, (y0 + 4) * k, (L * .7 + 10) * k), target: new T.Vector3(0, (y0 - sagR * .6) * k, 0), fitW: (L * .55 + 6) * k },
+    update(R, dt, t) { const ok = R.ok; const x = Math.sin(t * .25) * L * .35; walker.position.set(x, yAt(x) + .03 + (ok ? 0 : Math.abs(Math.sin(t * 6)) * .05), .2); walker.rotation.y = Math.cos(t * .25) > 0 ? 0 : Math.PI; walker.userData.legs.forEach((l, i) => l.rotation.z = Math.sin(t * 6 + i * Math.PI) * .35);
+      aT.userData.set(new T.Vector3(-L / 2 + 2, yAt(-L / 2 + 2) + .2, 1.2), new T.Vector3(-1, .25, 0).normalize(), 3 * Math.min(1.5, 1 / Math.max(.4, R.margin)) + .5); aW.userData.set(new T.Vector3(x + 1.2, yAt(x) + 3.2, .6), new T.Vector3(0, -1, 0), 2.4); return 0; } };
+};
+
+/* Ferris wheel: rim, spokes, A-frame legs, cabins that stay upright */
+B.ferris = (R, st) => {
+  const root = new T.Group(), D = Math.max(15, Math.min(140, R.role("size", 60))), k = 26 / D, scn = new T.Group(); scn.scale.setScalar(k); root.add(scn); const r = D / 2, hub = r + D * .08;
+  const steel = new T.MeshStandardMaterial({ color: 0xf1f5f9, metalness: .6, roughness: .35 });
+  [-1, 1].forEach(sd => { [-1, 1].forEach(fx => scn.add(rod(new T.Vector3(fx * r * .55, 0, sd * D * .1), new T.Vector3(0, hub, sd * D * .03), D * .012, steel))); });
+  const wheel = new T.Group(); wheel.position.y = hub; scn.add(wheel); [-1, 1].forEach(sd => { const rim = M(new T.TorusGeometry(r, D * .006, 8, 96), steel); rim.position.z = sd * D * .03; wheel.add(rim); for (let i = 0; i < 32; i++) { const a = i / 32 * Math.PI * 2; wheel.add(rod(new T.Vector3(0, 0, sd * D * .03), new T.Vector3(Math.cos(a) * r, Math.sin(a) * r, sd * D * .03), D * .0025, steel)); } });
+  const hubM = M(new T.CylinderGeometry(D * .03, D * .03, D * .08, 24).rotateX(Math.PI / 2), MAT.metal()); wheel.add(hubM);
+  const N = 16, cabs = []; const cols = [0xef4444, 0xf59e0b, 0x22c55e, 0x3b82f6, 0xa855f7, 0xec4899]; for (let i = 0; i < N; i++) { const c = new T.Group(); const body = M(new T.CapsuleGeometry(D * .022, D * .02, 6, 12), new T.MeshPhysicalMaterial({ color: 0xdbeafe, roughness: .05, transparent: true, opacity: .55 })); body.rotation.z = Math.PI / 2; c.add(body); const bs = M(new T.BoxGeometry(D * .06, D * .008, D * .04), MAT.paint(cols[i % cols.length])); bs.position.y = -D * .02; c.add(bs); scn.add(c); cabs.push({ c, a: i / N * Math.PI * 2 }); }
+  const lights = particles(64, 0xfff3b0, .5, { add: true, opacity: .9 }); wheel.add(lights); { const q = lights.userData; for (let i = 0; i < q.n; i++) { const a = i / q.n * Math.PI * 2; q.pos[i * 3] = Math.cos(a) * r; q.pos[i * 3 + 1] = Math.sin(a) * r; q.pos[i * 3 + 2] = D * .035; q.life[i] = 1; } lights.geometry.attributes.position.needsUpdate = true; }
+  const motor = M(new T.BoxGeometry(D * .05, D * .04, D * .05), MAT.paint(0x334155)); motor.position.set(0, hub - D * .05, -D * .05); scn.add(motor);
+  const [aT] = kit(scn, D * .02, 1);
+  const mk = { motor, body: hubM, wheels: wheel, rotor: wheel, load: cabs[4].c, top: marker(scn, 0, hub + r, 0), base: marker(scn, 0, 0, 0), speed: aT.userData.tip, goal: aT.userData.tip };
+  return { root, anchors: mk, follow: null, ground: "open", labels: [{ obj: aT.userData.tip, text: () => "Motor turns the wheel", col: "#22d3ee" }],
+    cam: { pos: new T.Vector3(10, 14, 34), target: new T.Vector3(0, hub * k * .9, 0), fitW: 17 },
+    update(R, dt, t) { const sp = R.ok ? .12 : .02 * R.frac; st.a = (st.a || 0) + sp * dt; wheel.rotation.z = st.a; cabs.forEach(o => { const a = o.a + st.a; o.c.position.set(Math.cos(a) * r, hub + Math.sin(a) * r - D * .03, 0); o.c.rotation.z = Math.sin(t * .8 + o.a) * .03; });
+      aT.userData.set(new T.Vector3(r * .3, hub + r * .2, D * .05), new T.Vector3(-.5, 1, 0).normalize(), D * .12 * (R.ok ? 1 : .3)); return 0; } };
+};
+
+/* roller coaster loop: lift hill, drop, vertical loop; the car follows the track */
+B.coaster = (R, st) => {
+  const root = new T.Group(), h = Math.max(6, R.role("height", 40)), rl = Math.max(3, R.role("radius", 10)), kk = 16 / Math.max(h, 2.6 * rl), H = h * kk, r = rl * kk;
+  const X0 = -r * 1.5 - H * 1.2 - 4, pts = [[X0 - 5, .8, 0], [X0 - 1, H * .55, 0], [X0 + 1, H, 0], [X0 + 2.5, H * .9, 0], [X0 + 2.5 + H * .7, H * .2, 0], [-r * 1.6, .8, 0], [-r * .4, .8, 0]];
+  const LS = pts.length; for (let i = 1; i < 24; i++) { const a = -Math.PI / 2 + i / 24 * Math.PI * 2; pts.push([Math.cos(a) * r, .8 + r + Math.sin(a) * r, i / 24 * 2.4]); } const LE = pts.length; pts.push([r * .4, .8, 2.4], [r * 1.8, .8, 2.4], [r * 3.5 + 6, .8, 2.4]);
+  const curve = new T.CatmullRomCurve3(pts.map(p => new T.Vector3(...p)), false, "centripetal", .5), N = 900, P = curve.getSpacedPoints(N), up0 = new T.Vector3(0, 1, 0), lc = new T.Vector3(0, .8 + r, 0);
+  const nearest = q => { let b = 0, bd = 1e9; P.forEach((p, i) => { const d = p.distanceToSquared(q); if (d < bd) { bd = d; b = i; } }); return b / N; }, uLs = nearest(new T.Vector3(...pts[LS])), uLe = nearest(new T.Vector3(...pts[LE - 1])), uTop = nearest(new T.Vector3(...pts[2]));
+  const inLoop = u => u > uLs - .01 && u < uLe + .01, upAt = (u, p) => inLoop(u) ? new T.Vector3(lc.x - p.x, lc.y - p.y, 0).normalize() : up0.clone();
+  const railM = new T.MeshStandardMaterial({ color: 0xdc2626, metalness: .5, roughness: .35 }), supM = new T.MeshStandardMaterial({ color: 0x94a3b8, metalness: .6, roughness: .4 });
+  [-.4, .4].forEach(off => { const Q = P.map((p, i) => { const u = i / N, tn = curve.getTangentAt(Math.min(1, u)), upv = upAt(u, p), side = new T.Vector3().crossVectors(tn, upv).normalize(); return p.clone().addScaledVector(side, off); }); root.add(M(new T.TubeGeometry(new T.CatmullRomCurve3(Q), 1200, .08, 8), railM)); });
+  for (let i = 0; i <= N; i += 30) { const p = P[i], u = i / N; if (p.y > 1.2 && !inLoop(u)) root.add(rod(new T.Vector3(p.x, 0, p.z), new T.Vector3(p.x, p.y - .1, p.z), .08, supM)); }
+  [-1, 1].forEach(sd => root.add(rod(new T.Vector3(sd * r * .7, 0, 1.2), new T.Vector3(sd * r * .2, .8 + r * .6, 1.2), .12, supM)));
+  const car = new T.Group(); root.add(car); const cb = M(new T.BoxGeometry(1.6, .5, 1.1), MAT.paint(0xfacc15)); cb.position.y = .45; car.add(cb); const nose = M(new T.SphereGeometry(.4, 16, 10, 0, Math.PI), MAT.paint(0xfacc15)); nose.rotation.y = -Math.PI / 2; nose.position.set(.8, .45, 0); nose.scale.set(1, .6, 1.3); car.add(nose);
+  [[-.35, 0x3b82f6], [.35, 0xef4444]].forEach(([x, c]) => { const hd = M(new T.SphereGeometry(.16, 14, 10), new T.MeshStandardMaterial({ color: 0xd9a37e })); hd.position.set(x, 1, 0); car.add(hd); const bd = M(new T.CapsuleGeometry(.14, .2, 6, 10), new T.MeshStandardMaterial({ color: c })); bd.position.set(x, .75, 0); car.add(bd); });
+  const [aV, aG] = kit(root, .5, 2);
+  const mk = { top: marker(root, X0 + 1, H + .8, 0), base: marker(root, 0, .8, 0), cable: marker(root, 0, .8 + 2 * r, 1.2), body: car, speed: aV.userData.tip, load: aG.userData.tip, goal: marker(root, 0, .8 + 2 * r + .6, 1.2), stress: marker(root, 0, .8 + 2 * r, 1.2) };
+  const yMax = H;
+  return { root, anchors: mk, follow: null, ground: "open", labels: [{ obj: marker(root, 0, .8 + 2 * r + 1.2, 1.2), text: () => "Top of the loop", col: "#fbbf24" }],
+    cam: { pos: new T.Vector3((X0 + r * 2) / 2, H * .7 + 3, (r * 2 - X0) * .75 + 6), target: new T.Vector3((X0 + r * 2) / 2, H * .45, 0), fitW: (r * 2 - X0) * .52 + 2 },
+    update(R, dt, t) { const ok = R.ok; if (st.u == null) { st.u = uTop; st.dir = 1; st.wait = 0; }
+      const p0 = curve.getPointAt(st.u); let v = st.u < uTop ? 3 : Math.sqrt(Math.max(.25, 2 * 9.81 * (yMax - p0.y) * .85)) * .7;
+      if (!ok && inLoop(st.u) && st.dir > 0 && (st.u - uLs) / (uLe - uLs) > .62) st.dir = -1; if (st.dir < 0 && st.u < uLs - .04) { st.wait += dt; v = 0; if (st.wait > 1) { st.u = uTop; st.dir = 1; st.wait = 0; } }
+      st.u += st.dir * v * dt / curve.getLength(); if (st.u >= .995) st.u = 0; if (st.u < 0) st.u = 0;
+      const p = curve.getPointAt(st.u), tn = curve.getTangentAt(st.u), upv = upAt(st.u, p), side = new T.Vector3().crossVectors(tn, upv).normalize(), upn = new T.Vector3().crossVectors(side, tn).normalize();
+      car.position.copy(p); car.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(tn, upn, side.clone().negate()));
+      aV.userData.set(p.clone().add(upn.clone().multiplyScalar(1.6)), tn.clone().multiplyScalar(st.dir), Math.min(3, .4 + v * .25)); aG.userData.set(p.clone().add(new T.Vector3(0, 0, 1.4)), new T.Vector3(0, -1, 0), 1.3); return 0; } };
+};
+
 B.custom = (R, st) => {
   const sc = R.sc, parts = sc.parts || [], root = new T.Group(), obj = new T.Group(); root.add(obj); const byName = {}, list = [];
   parts.forEach((p, i) => { const g = new T.Group(), m = M(partGeo(p), partMat(p.material, p.color)); g.add(m); const pos = p.pos || [0, 0, 0], rot = p.rot || [0, 0, 0];
@@ -1167,6 +1752,9 @@ function keyFor(R) {
   const sc = R.sc, k = [sc.type, sc.kind, sc.source, sc.load, userModel ? "u" + userId : ""];
   if (["glider", "kite", "solarheater", "wxballoon", "footbridge"].includes(sc.type)) k.push(Q(R.tr("span", .5)), Q(R.tr("size", .5)), Q(R.tr("height", .5)), Q(R.tr("area", .5)));
   if (sc.type === "scooter") k.push(Math.round((R.env && R.env.s) || 0));
+  if (sc.type === "boat") k.push(sc.kind);
+  const RB = { jetpack: ["engines"], airship: ["size"], marsheli: ["size"], paperplane: ["target"], waterrocket: ["water"], canopy: ["size"], solarsail: ["size"], rover: ["area"], hydrofoil: ["area"], hovercraft: ["size"], rov: ["thrusters"], tidal: ["size"], floatsolar: ["area"], landyacht: ["area"], zipline: ["height", "span"], waterwheel: ["height"], still: ["area"], quake: ["iso"], trebuchet: ["range"], bungee: ["drop", "cord"], ropebridge: ["span", "sag"], ferris: ["size"], coaster: ["height", "radius"] };
+  if (RB[sc.type]) RB[sc.type].forEach(n => k.push(Q(R.tr(n, .5)), Math.round(R.role(n, 0) * 100) / 100));
   if (sc.type === "screw" || sc.type === "multirotor") k.push(Math.round(R.role("rotors", 1)), Q(R.tr("size", .5)));
   if (sc.type === "rotorcraft") k.push(Math.round(R.role("levels", 1)), Math.round(R.role("rotors", 1)), Q(R.tr("size", .5)), Q(R.tr("load", .5)));
   if (sc.type === "aircraft") k.push(Q(R.tr("span", .5)), R.role("flap", 0) > .5);
