@@ -1,7 +1,7 @@
 // Formula Play offline support.
 // The app is one page. This keeps a copy of it and its icons so it opens without a connection,
 // and fetches a fresh copy whenever the phone is online.
-const VERSION = 'formula-play-v51';
+const VERSION = 'formula-play-v52';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -28,10 +28,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(req)
         .then(res => {
-          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); }
+          // Each page is saved under its own address, so Prototype Lab never replaces the Formula Play page.
+          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
           return res;
         })
-        .catch(() => caches.match('./index.html').then(hit => hit || caches.match('./')))
+        .catch(() => caches.match(req).then(hit => hit || (url.pathname.includes('/prototype-lab/') ? caches.match('./prototype-lab/index.html') : caches.match('./index.html').then(h => h || caches.match('./')))))
     );
     return;
   }
