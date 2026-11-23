@@ -1,7 +1,7 @@
 // Formula Play offline support.
 // The app is one page. This keeps a copy of it and its icons so it opens without a connection,
 // and fetches a fresh copy whenever the phone is online.
-const VERSION = 'formula-play-v55';
+const VERSION = 'formula-play-v56';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -32,7 +32,7 @@ self.addEventListener('fetch', event => {
           if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
           return res;
         })
-        .catch(() => caches.match(req).then(hit => hit || (url.pathname.includes('/prototype-lab/') ? caches.match('./prototype-lab/index.html') : caches.match('./index.html').then(h => h || caches.match('./')))))
+        .catch(() => caches.match(req).then(hit => hit || (url.pathname.includes('/prototype-lab/') ? caches.match('./prototype-lab/index.html') : url.pathname.includes('/solve/') ? caches.match('./solve/index.html') : caches.match('./index.html').then(h => h || caches.match('./')))))
     );
     return;
   }

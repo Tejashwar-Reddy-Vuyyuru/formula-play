@@ -37,7 +37,7 @@ a{color:inherit}
 <ul>
 <li>No name, email address, phone number or account details. The app has no sign-in.</li>
 <li>No location.</li>
-<li>No camera, contacts, photos library or files, other than a sound file you pick yourself.</li>
+<li>No contacts and no location. The camera, your photos and your clipboard are used only in Solve it, only when you tap a button, and never uploaded (see below).</li>
 <li>No advertising identifiers. The app shows no adverts.</li>
 <li>No analytics or tracking. The app does not measure how you use it.</li>
 </ul>
@@ -46,12 +46,15 @@ a{color:inherit}
 <p>The Sound tools use the microphone only after you tap a button that starts listening, and only if you allow it when your device asks. The sound is filtered and analysed on your device to find its pitch and notes, and to measure how loud the background is so it can be ignored. It is not recorded to storage, uploaded or shared. Listening stops when you leave the tool or tap Stop. If you choose the “Strong” noise filter, your device's own noise reduction is also switched on; this also happens on the device.</p>
 <p>Prototype Lab has a microphone button for typing a question by voice. It uses your phone's own voice typing (speech recognition), which may send the sound to your phone's speech service (for example Google) to turn it into text, under that service's own privacy policy. Formula Play only receives the typed words, uses them to find a matching machine on your device, and does not keep or send them anywhere. You can always type instead.</p>
 
+<h2>Camera, photos and clipboard (Solve it)</h2>
+<p>Solve it lets you snap a photo of a problem, pick a photo or screenshot, or paste copied text. The camera, your photo picker or your clipboard are used only after you tap “Snap a photo”, “Pick a photo” or “Paste”, and only the one photo or the copied text you choose is used. The text in the photo is read on your device by a text-reading tool (Tesseract), and the problem is worked out on your device. The photo, the text and the answer are not uploaded, sent to the developer or shared, and they are not saved: they are gone when you leave the page. Formula Play cannot see your other photos.</p>
+
 <h2>What is kept on your device</h2>
 <p>The app keeps a small amount of information in your browser's storage on your device, so that it is there the next time you open the app:</p>
 <ul>
 <li>Your level, your run of days and your best scores in the games.</li>
 <li>Creations you choose to save: drawings, typed formulas, sounds, tunes and Motion lab setups, stored as short codes.</li>
-<li>Your settings: light or dark, motion effects on or off, and the noise filter.</li>
+<li>Your settings: light or dark, motion effects on or off, the noise filter, and in Solve it whether hints come first and which explanation level you last chose.</li>
 <li>A copy of the app itself, so it opens without a connection.</li>
 </ul>
 <p>This information never leaves your device. You can remove it at any time from Menu, then Settings, then “Clear my progress and creations”, or by clearing the app's storage in your device or browser settings.</p>
@@ -64,6 +67,7 @@ a{color:inherit}
 <li><strong>Hosting.</strong> The app's files are served by GitHub Pages. Like any website host, GitHub receives technical information when your device loads the app, such as your IP address. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</li>
 <li><strong>Fonts.</strong> The app loads its typefaces from Google Fonts. Your device contacts Google's servers to fetch them, which shares your IP address with Google. See <a href="https://developers.google.com/fonts/faq/privacy">Google Fonts privacy information</a>.</li>
 <li><strong>3D graphics library.</strong> Prototype Lab loads its free 3D drawing library (three.js) from the jsDelivr network the first time you open it, which shares your IP address with jsDelivr. After that a copy is kept on your device.</li>
+<li><strong>Text-reading tool.</strong> The first time you read a photo in Solve it, your device downloads a free text-reading tool (Tesseract) and its English language file from the jsDelivr network, which shares your IP address with jsDelivr. Your photo is not sent to jsDelivr or anywhere else; the reading happens on your device.</li>
 <li><strong>Google Play.</strong> If you install the Android app, Google Play handles the download and may collect information under its own policies.</li>
 </ul>
 <p>The developer has no access to the information these services receive.</p>
