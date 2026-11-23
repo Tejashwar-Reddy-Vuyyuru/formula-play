@@ -709,7 +709,7 @@ body[data-view="arcade"] #webnote{display:none}
       <details class="faq"><summary>What is in the Locker?</summary><p>Open Menu, then Me. You can set your player name and build your avatar (hair, skin tone, outfit, accessory and frame), and choose an app theme, drawing pen, win celebration, Cue shot table, cannon trail and Jet tag laser. Looks unlock for good at the highest tier you have reached, even if you later drop a tier. Items marked ✦ cost one Gold pass and are yours for good.</p></details>
       <details class="faq"><summary>Do I need to pay for anything?</summary><p>No. Everything is earned by playing. There is no money, no ads and no shop.</p></details></section>
     <section class="card"><h2>Motion lab</h2>
-      <details class="faq"><summary>What is the Inventors section?</summary><p>In Motion lab, tap ✨ Inventors. Famous machines, from Leonardo da Vinci's aerial screw and giant crossbow to Nikola Tesla's coil and motor, first appear as an ink sketch. Tap “Bring it to life” to see them work, then move the sliders to change sizes, forces and speeds and see the real numbers, like whether the machine would actually fly.</p></details>
+      <details class="faq"><summary>What is the Inventors section?</summary><p>In Motion lab, tap ✨ Inventors. Famous machines, from Leonardo da Vinci's aerial screw and no-nail bridge to Nikola Tesla's coil and motor, first appear as an ink sketch. Tap “Bring it to life” to see them work, then move the sliders to change sizes, forces and speeds and see the real numbers, like whether the machine would actually fly.</p></details>
       <details class="faq"><summary>What is the Motion lab?</summary><p>Five motions worked out from the laws of physics: a pendulum, a dropped ball, a thrown ball, a weight on a spring and a spinning wheel. It plays like a video, with the time, position, speed and acceleration written on the picture as it moves.</p></details>
       <details class="faq"><summary>How do I change it?</summary><p>Use the sliders and the gravity buttons under “Change it”, or drag the object on the picture: drag the pendulum to set its angle, the dropped ball to set its height, the spring weight to set how far it is pulled, and away from the throw's start point to aim the throw.</p></details>
       <details class="faq"><summary>What do the arrows and dots mean?</summary><p>The blue arrow is the velocity: where the object is heading and how fast. The amber arrow is the acceleration. Longer means bigger. The orange dots are where the object was at equal steps of time, so dots far apart mean it was moving fast.</p></details>
@@ -728,7 +728,7 @@ body[data-view="arcade"] #webnote{display:none}
       <details class="faq"><summary>How do levels and the run of days work?</summary><p>In Practice, three scores of 80 or more without the hint take you to the next level, up to level 5. A day counts toward your run when you score 50 or more on that day's challenge.</p></details>
       <details class="faq"><summary>How does a duel work?</summary><p>After a challenge or practice result, send it from “Challenge a friend”. Your friend gets the same formula and your score to beat, and the app says who won.</p></details></section>
     <section class="card"><h2>Your data</h2>
-      <details class="faq"><summary>Does anything leave my phone?</summary><p>No account is needed and nothing is uploaded. Drawings and sounds are worked out on your phone. They go somewhere only when you send a link or a code yourself.</p></details>
+      <details class="faq"><summary>Does anything leave my phone?</summary><p>No account is needed, and the app doesn't collect or store anything you draw or say. Drawings and sounds are worked out on your phone, and go somewhere only when you send a link or a code yourself. The one exception is the microphone button in Prototype Lab: it uses your phone's own voice typing, which may send your voice to your phone's speech service to turn it into text. You can always type instead.</p></details>
       <details class="faq"><summary>Where are my level, run of days and saved creations kept?</summary><p>In this browser on this phone. Clearing the browser's data, or using another phone, starts them again. Settings has a button to clear them yourself.</p></details></section>
   </div>
 
@@ -743,7 +743,7 @@ body[data-view="arcade"] #webnote{display:none}
   </div>
 
   <div class="view" id="v-about" hidden>
-    <section class="card"><h2>Formula Play</h2><p class="small">Version 1.0</p><p>Draw it, say it, get the formula. Formula Play turns drawings and ringing sounds into formulas, and formulas back into drawings and sounds.</p><p class="small">It runs entirely on your phone. There is no account, and nothing is uploaded.</p><p id="privlink" hidden><a href="privacy.html" style="color:inherit;font-weight:600">Privacy policy</a></p></section>
+    <section class="card"><h2>Formula Play</h2><p class="small">Version 1.0</p><p>Draw it, say it, get the formula. Formula Play turns drawings and ringing sounds into formulas, and formulas back into drawings and sounds.</p><p class="small">It runs on your phone. There is no account, and we don't collect or store anything you draw or say. Voice typing in Prototype Lab uses your phone's own speech service.</p><p id="privlink" hidden><a href="privacy.html" style="color:inherit;font-weight:600">Privacy policy</a></p></section>
   </div>
 
   <div class="view" id="v-daily" hidden>
@@ -3893,27 +3893,24 @@ const INV=[
       c.strokeStyle='rgba(125,211,252,.35)';c.lineWidth=2;for(let i=0;i<9;i++){const x=cx-rw*0.8+i*rw*0.2,yy=yb-60+((t*120*Math.min(1,o.lift*5+0.2)+i*37)%120);c.beginPath();c.moveTo(x,yy);c.lineTo(x,yy+18);c.stroke();}}},
   step(st,p,o,dt){st.a=(st.a||0)+dt*(0.6+Math.min(6,o.P/300));const tgt=o.lift>=1?Math.min(280,(st.y||0)+dt*60*(o.lift-0.9)):(Math.abs(Math.sin(st.a*2))*Math.min(14,o.lift*400));st.y=o.lift>=1?tgt:tgt;}},
 
- {id:'bow',who:'Leonardo da Vinci',year:'about 1488',name:'Giant crossbow',note:'balestra gigante',
-  story:'A war machine 24 metres wide on six wheels. Its bow was built in thin layers so it would bend without snapping, a trick still used in springs today.',
-  params:[['F','Pull force',5,80,1,24,'kN'],['d','Draw length',0.5,2.5,0.1,1.4,'m'],['m','Stone or bolt mass',1,40,0.5,10,'kg'],['ang','Launch angle',5,60,1,35,'°']],
-  calc(p){const E=0.5*p.F*1000*p.d,eta=0.6,v=Math.sqrt(2*eta*E/p.m),a=p.ang*Math.PI/180,R=v*v*Math.sin(2*a)/G0,Hm=v*v*Math.sin(a)**2/(2*G0),Tf=2*v*Math.sin(a)/G0;
-    return {E,v,R,Hm,Tf,a,rows:[['Energy stored',f1(E/1000,1)+' kJ'],['Launch speed',f1(v,1)+' m/s'],['Range',f1(R,0)+' m'],['Highest point',f1(Hm,0)+' m']],
-      formula:['Energy E = ½·F·d = ½·'+f1(p.F,0)+' kN·'+f1(p.d,1)+' m = '+f1(E/1000,1)+' kJ','Speed v = √(2·η·E/m) = √(2·0.6·'+f1(E,0)+'/'+f1(p.m,1)+') = '+f1(v,1)+' m/s','Range R = v²·sin(2θ)/g = '+f1(R,0)+' m'],
-      status:'Flight time '+f1(Tf,1)+' s · the best angle without air is 45°',
-      wow:'It was probably never built in Leonardo\'s time. In 2002 a TV team built one from his drawings, and it really did shoot.'};},
-  draw(c,P,p,o,t,st){const gx=60,gy=440,sc=Math.min(1.4,520/Math.max(60,o.R));
-    P.shape(()=>{c.rect(gx-10,gy-30,210,22);},'#7c5a34');[gx+20,gx+90,gx+160].forEach(x=>P.circle(x,gy,18,'#5b4127'));
-    const pull=st.fire?Math.max(0,1-st.ft*6):1;const bx=gx+170,by=gy-60;c.save();c.translate(bx,by);c.rotate(-o.a);
-    P.shape(()=>{c.moveTo(0,-110);c.quadraticCurveTo(40,0,0,110);c.lineTo(-8,110);c.quadraticCurveTo(30,0,-8,-110);c.closePath();},'#a16207');
-    const sx=-30-pull*Math.min(90,p.d*40);P.line(-4,-108,sx,0,'#e5e7eb',2);P.line(-4,108,sx,0,'#e5e7eb',2);P.line(-150,0,10,0,'#7c5a34',8);c.restore();
-    if(P.bp){P.dim(bx-40,by+130,bx+70,by+130,'d = '+p.d.toFixed(1)+' m');mirrorNote(c,520,120,'arco di molte lame',18);}
-    // the path
-    if(!P.bp){c.setLineDash([4,7]);c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=2;c.beginPath();for(let i=0;i<=40;i++){const tt=o.Tf*i/40,x=o.v*Math.cos(o.a)*tt,y=o.v*Math.sin(o.a)*tt-0.5*G0*tt*tt;const X=bx+x*sc,Y=by-y*sc;if(i)c.lineTo(X,Y);else c.moveTo(X,Y);}c.stroke();c.setLineDash([]);
-      if(st.fire){const tt=Math.min(o.Tf,st.ft*Math.max(1,o.Tf/2.5)),x=o.v*Math.cos(o.a)*tt,y=o.v*Math.sin(o.a)*tt-0.5*G0*tt*tt,X=bx+x*sc,Y=by-y*sc;c.fillStyle='#e2e8f0';c.shadowColor='#fbbf24';c.shadowBlur=14;c.beginPath();c.arc(X,Y,8,0,TAU);c.fill();c.shadowBlur=0;
-        P.tag(X+12,Y-20,f1(Math.hypot(o.v*Math.cos(o.a),o.v*Math.sin(o.a)-G0*tt),1)+' m/s','#fbbf24');if(tt>=o.Tf){P.tag(Math.min(620,X-40),gy-20,'Landed at '+f1(o.R,0)+' m','#4ade80');}}
-      P.tag(40,60,'Launch '+f1(o.v,1)+' m/s','#fbbf24');P.tag(40,94,'Range '+f1(o.R,0)+' m','#4ade80');P.line(0,gy+20,IW,gy+20,'#334155',2);}},
-  step(st,p,o,dt){if(st.fire)st.ft+=dt;},action:['🏹 Fire',st=>{st.fire=true;st.ft=0;}]},
-
+ {id:'lbridge',who:'Leonardo da Vinci',year:'about 1485',name:'Self-supporting bridge',note:'ponte · senza chiodi',
+  story:'Leonardo drew a bridge an army could build from straight logs in minutes, with no nails or rope. The logs are woven over and under each other, so the load squeezes them tighter together. Try it with pencils or craft sticks!',
+  params:[['L','Stick length',10,60,1,17,'cm'],['d','Stick thickness',4,20,0.5,7,'mm'],['n','Sticks used',7,25,1,13,''],['m','Toy load in the middle',0.2,10,0.1,1,'kg']],
+  calc(p){const bays=Math.floor((p.n-1)/3),span=0.6*p.L*Math.max(1,bays),Mb=p.m*G0/2*(p.L/100)/4,Z=Math.PI*Math.pow(p.d/1000,3)/32,sig=Mb/Z/1e6,ok=sig<=40;
+    return {ok,span,sig,bays,rows:[['Bridge span',f1(span,0)+' cm'],['Woven sections',String(bays)],['Bending stress in the middle sticks',f1(sig,1)+' MPa'],['Wood breaks at about','40 MPa']],
+      formula:['Each woven section adds about 0.6 × stick length: span ≈ '+f1(span,0)+' cm','Middle sticks bend: stress = (load/2 · L/4) ÷ (π d³/32) = '+f1(sig,1)+' MPa','Safe while the stress stays under the wood’s 40 MPa'],
+      status:ok?'🌉 It holds! The weight locks the sticks together.':'The middle sticks would snap: use thicker sticks, shorter sticks or a lighter load.',
+      wow:'No glue, no nails: the harder you press down, the tighter it grips. Scouts and engineers still build Leonardo bridges, and you can make one from 13 pencils on a table.'};},
+  draw(c,P,p,o,t,st){const g=470,cx=360,span=Math.min(560,Math.max(180,o.span*7)),x0=cx-span/2,x1=cx+span/2,rise=Math.min(150,span*0.28),sag=o.ok?0:12+Math.sin(t*6)*2;
+    P.shape(()=>{c.rect(0,g,x0+20,IH-g);},'#65a30d');P.shape(()=>{c.rect(x1-20,g,IW-x1+20,IH-g);},'#65a30d');P.shape(()=>{c.rect(x0+20,g+18,x1-x0-40,IH-g-18);},'#38bdf8',{edge:false});
+    const yAt=x=>g-rise*Math.sin(Math.PI*(x-x0)/span)+(sag*Math.sin(Math.PI*(x-x0)/span)),N=Math.max(4,o.bays*2+1),seg=span/N;
+    for(let i=0;i<N;i++){const xa=x0+i*seg-seg*0.15,xb=x0+(i+1)*seg+seg*0.15,up=i%2?-6:6;P.line(xa,yAt(Math.max(x0,xa))+up,xb,yAt(Math.min(x1,xb))-up,'#a16207',Math.min(14,4+p.d*0.6));}
+    for(let i=1;i<N;i++){const x=x0+i*seg;P.line(x,yAt(x)-16,x,yAt(x)+16,'#78350f',Math.min(12,3+p.d*0.5));}
+    const bx=cx+Math.sin((st.a||0)*0.6)*span*0.18,bs=Math.min(60,18+Math.sqrt(p.m)*14);P.shape(()=>{c.rect(bx-bs/2,yAt(bx)-bs-10,bs,bs);},'#94a3b8');
+    if(!P.bp){c.fillStyle='#0f172a';c.font='700 14px '+css('--sans');c.textAlign='center';c.fillText(f1(p.m,1)+' kg',bx,yAt(bx)-bs/2-5);}
+    if(!o.ok&&!P.bp){P.line(cx-10,yAt(cx)-8,cx+4,yAt(cx)+6,'#ef4444',4);P.line(cx+4,yAt(cx)+6,cx-6,yAt(cx)+16,'#ef4444',4);}
+    if(P.bp)P.dim(x0,g+40,x1,g+40,'span ≈ '+f1(o.span,0)+' cm');else{P.tag(40,60,'Span '+f1(o.span,0)+' cm','#facc15');P.tag(40,94,'Stick stress '+f1(o.sig,1)+' / 40 MPa',o.ok?'#4ade80':'#f87171');}},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;}},
  {id:'cart',who:'Leonardo da Vinci',year:'about 1478',name:'Self-moving cart',note:'',
   story:'A cart that drives itself, powered by wound-up springs like a giant clockwork toy. Many people call it the first design for a robot vehicle.',
   params:[['k','Spring stiffness',200,3000,50,2000,'N/m'],['x','How far you wind it',0.1,0.6,0.01,0.5,'m'],['m','Cart mass',20,150,1,60,'kg'],['mu','Rolling friction',0.02,0.2,0.01,0.06,'']],
@@ -3943,22 +3940,6 @@ const INV=[
     if(P.bp){P.dim(fx-sa,fy+90,fx,fy+90,'a = '+p.a.toFixed(1)+' m');P.dim(fx,fy+90,fx+sb,fy+90,'b = '+p.b.toFixed(1)+' m');}
     else{P.tag(40,60,'Push needed '+f1(o.need,0)+' N',o.ok?'#4ade80':'#f87171');P.tag(40,94,'Your push '+p.F+' N','#7dd3fc');P.tag(470,60,'Force × '+f1(o.MA,1),'#facc15');}},
   step(st,p,o,dt){st.a=(st.a||0)+dt;}},
-
- {id:'balloon',who:'Montgolfier brothers',year:'1783',name:'Hot-air balloon',note:'',
-  story:'Two French paper-makers noticed that hot air rises, filled a huge paper and cloth bag with it, and made the first flying machine to carry living passengers.',
-  params:[['V','Balloon size',200,3000,50,1400,'m³'],['Ti','Air inside',40,120,1,90,'°C'],['To','Air outside',-10,35,1,15,'°C'],['m','Balloon, basket and riders',100,800,10,300,'kg']],
-  calc(p){const ro=353/(p.To+273.15),ri=353/(p.Ti+273.15),lift=(ro-ri)*p.V*G0,W=p.m*G0,net=lift-W;return {ro,ri,lift,W,net,rows:[['Outside air',f1(ro,3)+' kg/m³'],['Hot air inside',f1(ri,3)+' kg/m³'],['Lift',f1(lift,0)+' N'],['Weight to carry',f1(W,0)+' N']],
-      formula:['Hot air is lighter: density ρ ≈ 353 / T (T in kelvin)','Lift = (ρ outside − ρ inside)·V·g = ('+f1(ro,3)+' − '+f1(ri,3)+')·'+p.V+'·9.81 = '+f1(lift,0)+' N'],
-      status:net>0?'🎈 It rises, with '+f1(net,0)+' N to spare.':'Too heavy by '+f1(-net,0)+' N. Heat the air more or use a bigger balloon.',
-      wow:'The first passengers, in September 1783, were a sheep, a duck and a rooster. They landed safely, and people flew two months later.'};},
-  draw(c,P,p,o,t,st){const cx=360,R=Math.min(150,60+Math.cbrt(p.V)*6),y=(P.bp?250:250-(st.y||0)*0.6)+(P.bp?0:Math.sin(t*1.2)*4);
-    if(!P.bp){c.fillStyle='rgba(255,255,255,.08)';[[120,120,60],[560,90,80],[470,300,50]].forEach(([x,yy,w])=>{c.beginPath();c.ellipse(x,(yy+(st.y||0)*0.6)%IH,w,18,0,0,TAU);c.fill();});}
-    P.shape(()=>{c.moveTo(cx-R*0.3,y+R*1.05);c.bezierCurveTo(cx-R*1.3,y+R*0.2,cx-R*1.1,y-R,cx,y-R);c.bezierCurveTo(cx+R*1.1,y-R,cx+R*1.3,y+R*0.2,cx+R*0.3,y+R*1.05);c.closePath();},'#f59e0b');
-    if(!P.bp){['#ef4444','#fde047','#3b82f6'].forEach((col,k)=>{c.strokeStyle=col;c.lineWidth=4;c.beginPath();c.ellipse(cx,y-R*0.1,R*(0.25+k*0.3),R*0.9,0,0,TAU);c.stroke();});
-      const fl=c.createRadialGradient(cx,y+R*1.15,2,cx,y+R*1.15,26+Math.sin(t*20)*4);fl.addColorStop(0,'#fff7ed');fl.addColorStop(0.4,'#fb923c');fl.addColorStop(1,'rgba(251,146,60,0)');c.fillStyle=fl;c.beginPath();c.arc(cx,y+R*1.15,30,0,TAU);c.fill();}
-    P.line(cx-R*0.3,y+R*1.05,cx-22,y+R*1.45,'#cbd5e1',1.5);P.line(cx+R*0.3,y+R*1.05,cx+22,y+R*1.45,'#cbd5e1',1.5);P.shape(()=>{c.rect(cx-24,y+R*1.45,48,30);},'#8b6b47');
-    if(P.bp)P.dim(cx-R,y-R-16,cx+R,y-R-16,'V = '+p.V+' m³');else{P.tag(40,60,'Lift '+f1(o.lift,0)+' N','#4ade80');P.tag(40,94,'Weight '+f1(o.W,0)+' N','#f87171');P.tag(470,60,'Inside '+p.Ti+' °C · outside '+p.To+' °C','#facc15');}},
-  step(st,p,o,dt){const tgt=o.net>0?Math.min(150,o.net/20):0;st.y=(st.y||0)+(tgt-(st.y||0))*Math.min(1,dt*0.8);}},
 
  {id:'ramp',who:'Galileo Galilei',year:'about 1604',name:'Rolling-ball ramp',note:'',
   story:'To slow falling down enough to measure it, Galileo rolled balls down a gentle ramp and timed them with water clocks. He found that speed grows steadily: the start of modern physics.',
@@ -4021,23 +4002,25 @@ const INV=[
     if(P.bp){P.dim(x0,y0+30,x1,y1+30,'L = '+p.len+' m');}else{P.tag(40,60,f1(o.Q*60000,0)+' litres a minute','#38bdf8');P.tag(40,94,'Lift '+f1(o.h,2)+' m','#facc15');P.tag(470,60,'Power '+f1(o.Pw,0)+' W','#4ade80');}},
   step(st,p,o,dt){st.a=(st.a||0)+dt*p.rpm/60*4;}},
 
- {id:'hero',who:'Hero of Alexandria',year:'about 60 AD',name:'Steam engine (aeolipile)',note:'',
-  story:'A hollow ball on a pivot with two bent pipes. Boiling water sends steam out of the pipes and the ball spins: the first steam engine, nearly 2,000 years ago.',
-  params:[['pk','Steam pressure',5,150,1,40,'kPa'],['dn','Nozzle width',1,10,0.5,4,'mm'],['r','Ball radius',0.05,0.3,0.01,0.12,'m']],
-  calc(p){const A=Math.PI*(p.dn/2000)**2,F=2*p.pk*1000*A,Tq=2*F*p.r,w=Math.sqrt(Tq/0.00004),rpm=w*60/TAU;
-    return {F,Tq,rpm,rows:[['Push from each jet',f1(F,2)+' N'],['Turning force (torque)',f1(Tq,3)+' N·m'],['Spins up to about',f1(rpm,0)+' rpm']],
-      formula:['Jet push F ≈ 2·p·A = 2·'+p.pk+' kPa·'+f1(A*1e6,1)+' mm² = '+f1(F,2)+' N','Torque = 2 jets · F · r = '+f1(Tq,3)+' N·m'],status:'Action and reaction: steam goes one way, the ball turns the other. It is Newton\'s third law, 1,600 years before Newton.',
-      wow:'Hero had the steam engine, but nobody used it for work. Steam power only changed the world 1,700 years later.'};},
-  draw(c,P,p,o,t,st){const cx=360,cy=230,R=Math.min(130,40+p.r*350),a=st.a||0;
-    P.shape(()=>{c.rect(cx-150,400,300,70);},'#7c2d12');if(!P.bp){const fl=c.createRadialGradient(cx,480,5,cx,480,90);fl.addColorStop(0,'rgba(251,146,60,.9)');fl.addColorStop(1,'rgba(251,146,60,0)');c.fillStyle=fl;c.fillRect(cx-120,420,240,100);}
-    P.line(cx-R-20,cy,cx-R-20,400,'#78350f',8);P.line(cx+R+20,cy,cx+R+20,400,'#78350f',8);
-    const ex=Math.cos(a)*R;c.save();P.shape(()=>{c.ellipse(cx,cy,R,R,0,0,TAU);},'#b45309');
-    [[1,-1],[-1,1]].forEach(([s,d])=>{const x=cx+Math.cos(a)*R*s,yy=cy;P.line(x,yy,x,yy+d*28,'#92400e',6);
-      if(!P.bp){for(let k=0;k<6;k++){const q=((t*3+k/6)%1);c.fillStyle='rgba(226,232,240,'+(0.5*(1-q))+')';c.beginPath();c.arc(x+(-Math.sin(a)*s)*q*-60,yy+d*28+d*q*20,6+q*16,0,TAU);c.fill();}}});
-    c.restore();P.line(cx-ex*0.2,cy-R*0.95,cx+ex*0.2,cy-R*0.95,'#fde68a',2);
-    if(!P.bp){P.tag(40,60,'Jet push '+f1(o.F,2)+' N','#e2e8f0');P.tag(40,94,'Spin '+f1(o.rpm,0)+' rpm','#facc15');}else P.dim(cx-R,cy+R+20,cx+R,cy+R+20,'r = '+p.r.toFixed(2)+' m');},
-  step(st,p,o,dt){st.a=(st.a||0)+dt*Math.min(18,o.rpm/60*TAU*0.25+0.4);}},
-
+ {id:'gthermo',who:'Named after Galileo Galilei',year:'1600s',name:'Galileo thermometer',note:'',
+  story:'A tall glass tube of liquid with sealed glass bubbles inside, each with a temperature tag. When the room warms up, the liquid gets a tiny bit lighter, so the bubbles sink one by one. The lowest floating bubble tells you the temperature.',
+  params:[['T','Room temperature',14,32,0.5,22,'°C'],['step','Gap between bubble tags',1,4,1,2,'°C'],['n','Number of bubbles',3,7,1,5,'']],
+  calc(p){const rho=T=>1000*(1-(T+288.9414)/(508929.2*(T+68.12963))*Math.pow(T-3.9863,2)),r=rho(p.T),mid=22,tags=[],floats=[];
+    for(let i=0;i<p.n;i++){const tg=mid+(i-(p.n-1)/2)*p.step;tags.push(tg);floats.push(rho(tg)<=r+1e-9);}
+    const fl=tags.filter((x,i)=>floats[i]),read=fl.length?Math.min(...fl):null;
+    return {r,tags,floats,read,ok:read!==null&&Math.abs(read-p.T)<=p.step,rows:[['Liquid density now',f1(r,2)+' kg/m³'],['Bubbles floating',fl.length+' of '+p.n],['Lowest floating bubble reads',read===null?'all sunk':f1(read,0)+' °C']],
+      formula:['Each bubble is tuned to sink once the liquid is lighter than it','Liquid density at '+p.T+' °C = '+f1(r,2)+' kg/m³','A 1 °C rise makes the liquid about 0.02% lighter: enough to sink the next bubble'],
+      status:read===null?'🌡️ Too warm: every bubble has sunk. Add bubbles for warmer days.':fl.length===p.n?'❄️ Too cold for this set: every bubble floats. Add colder bubbles.':'🌡️ It reads about '+f1(read,0)+' °C (the room is '+p.T+' °C).',
+      wow:'The change is tiny: water at 22 °C is only about 0.02% lighter than at 21 °C, yet the bubbles feel it. This is Archimedes’ floating rule at work.'};},
+  draw(c,P,p,o,t,st){const tx=300,ty=40,tw=130,th=420;P.shape(()=>{c.rect(tx,ty,tw,th);},'rgba(186,230,253,.35)');P.shape(()=>{c.rect(tx-10,ty+th,tw+20,24);},'#78350f');P.shape(()=>{c.rect(tx-6,ty-14,tw+12,16);},'#78350f');
+    const cols=['#ef4444','#f59e0b','#22c55e','#3b82f6','#a855f7','#ec4899','#14b8a6'];st.ys=st.ys||[];
+    o.tags.forEach((tg,i)=>{const y=st.ys[i]==null?ty+50+i*44:st.ys[i];
+      const bx=tx+tw/2+((i%2)?18:-18),yy=y+Math.sin(t*1.5+i)*2;P.circle(bx,yy,20,cols[i%cols.length]);P.line(bx,yy+20,bx,yy+30,'#334155',1.5);P.shape(()=>{c.rect(bx-16,yy+30,32,14);},'#fde68a');
+      if(!P.bp){c.fillStyle='#111827';c.font='700 11px '+css('--sans');c.textAlign='center';c.fillText(f1(tg,0)+'°',bx,yy+41);}});
+    if(!P.bp){P.tag(40,60,'Room '+p.T+' °C','#facc15');P.tag(40,94,o.read===null?'Reading: —':'Reading '+f1(o.read,0)+' °C',o.ok?'#4ade80':'#f87171');P.tag(470,120,'floating: tags warmer than the room','#e2e8f0');P.tag(470,420,'sunk: cooler tags','#e2e8f0');}
+    else P.dim(tx+tw+30,ty,tx+tw+30,ty+th,'liquid');},
+  step(st,p,o,dt){st.ys=st.ys||[];const ty=40,th=420;const fl=o.tags.map((tg,i)=>i).filter(i=>o.floats[i]).sort((a,b)=>o.tags[b]-o.tags[a]),sk=o.tags.map((tg,i)=>i).filter(i=>!o.floats[i]).sort((a,b)=>o.tags[a]-o.tags[b]);
+    o.tags.forEach((tg,i)=>{const tgt=o.floats[i]?ty+40+fl.indexOf(i)*52:ty+th-60-sk.indexOf(i)*52;st.ys[i]=st.ys[i]==null?tgt:st.ys[i]+(tgt-st.ys[i])*Math.min(1,dt*1.5);});}},
  {id:'clock',who:'Galileo Galilei',year:'1641',name:'Pendulum clock',note:'',
   story:'Galileo noticed a swinging church lamp kept the same beat whatever its swing size. Near the end of his life he designed a clock that uses a pendulum to keep time.',
   params:[['L','Pendulum length',0.1,2.5,0.01,0.99,'m'],['g','Gravity',1.6,24.8,0.1,9.8,'m/s²']],
@@ -4349,6 +4332,23 @@ const INV=[
     st.ants.forEach(q=>{q.s+=q.dir*sp*dt/L[q.path];if(q.dir>0&&q.s>=1){q.s=1;q.dir=-1;st.ph[q.path]+=1;q.path=pick();}else if(q.dir<0&&q.s<=0){q.s=0;q.dir=1;st.ph[q.path]+=1;q.path=pick();}});},
   action:['🐜 Start again',st=>{st.ants=null;}]},
 
+ {id:'gecko',who:'Nature’s idea: the gecko',year:'about 100 million years old',name:'Gecko feet → super-grip tape',note:'',
+  story:'Geckos run up glass and hang from ceilings with no glue and no suction. Each toe is covered in millions of tiny hairs that cling to the wall with the weak force between molecules. Engineers copied them to make dry, reusable grip tape.',
+  params:[['A','Toe pad area (all four feet)',1,10,0.1,4.4,'cm²'],['dens','Tiny hairs per mm²',1000,15000,100,14400,''],['f','Grip of one hair',1,40,1,20,'µN'],['use','Hairs touching the wall',1,100,1,3,'%'],['m','Gecko mass',0.02,0.3,0.01,0.1,'kg']],
+  calc(p){const hairs=p.A*100*p.dens,full=hairs*p.f*1e-6,grip=full*p.use/100,W=p.m*G0,ok=grip>=W,canHold=full/G0;
+    return {ok,grip,W,hairs,rows:[['Tiny hairs',f1(hairs/1e6,1)+' million'],['Grip if every hair touched',f1(full,0)+' N'],['Grip with '+p.use+'% touching',f1(grip,1)+' N'],['Gecko weighs',f1(W,2)+' N'],['All hairs together could hold',f1(canHold,1)+' kg']],
+      formula:['Hairs = pad area × hairs per mm² = '+f1(hairs/1e6,1)+' million','Grip = hairs × grip per hair × share touching = '+f1(grip,1)+' N','Holds on while grip ≥ weight m·g = '+f1(W,2)+' N'],
+      status:ok?'🦎 It sticks! Grip is '+f1(grip/W,1)+' × its weight.':'It slides down: more hairs need to touch the wall.',
+      wow:'If every hair touched at once, a gecko could hold about '+f1(canHold,0)+' kg. It peels its toes off by curling them, which is why it can run as well as stick.'};},
+  draw(c,P,p,o,t,st){const wx=430;P.shape(()=>{c.rect(wx,40,250,440);},'#bae6fd');if(!P.bp){c.fillStyle='rgba(255,255,255,.35)';c.fillRect(wx+20,60,18,400);c.fillRect(wx+60,60,8,400);}P.line(0,480,IW,480,'#334155',2);
+    const y=st.y==null?300:st.y,gx=wx-2;c.save();c.translate(gx,y);c.rotate(-Math.PI/2);const sw=Math.sin((st.a||0)*6)*(o.ok?1:0.2);
+    P.shape(()=>{c.ellipse(0,0,46,16,0,0,TAU);},'#84cc16');P.shape(()=>{c.ellipse(52,0,18,13,0,0,TAU);},'#84cc16');P.circle(60,-6,4,'#111827',{nohatch:true});
+    P.line(-44,0,-100,8*sw,'#84cc16',10);[[20,1],[20,-1],[-24,1],[-24,-1]].forEach(([x,sd],i)=>{const ph=(i%2?sw:-sw)*10;P.line(x,sd*14,x+ph+8,sd*30,'#65a30d',6);P.circle(x+ph+10,sd*32,6,'#a3e635');});c.restore();
+    const zx=200,zy=200,zr=110;P.ring(zx,zy,zr,'#facc15',4);c.save();c.beginPath();c.arc(zx,zy,zr-2,0,TAU);c.clip();if(!P.bp){c.fillStyle='#1e293b';c.fillRect(zx-zr,zy-zr,2*zr,2*zr);}
+    for(let i=0;i<22;i++){const x=zx-zr+10+i*10,touch=(i*37%100)<Math.max(p.use,6);P.line(x,zy+zr,x+(touch?18:6),zy-20+(touch?0:20),'#a3e635',2);if(touch&&!P.bp)P.circle(x+18,zy-22,3,'#fde047',{nohatch:true});}
+    c.restore();P.line(zx+zr*0.7,zy+zr*0.7,gx-30,y+20,'#facc15',2);
+    if(!P.bp){P.tag(40,60,'Grip '+f1(o.grip,1)+' N','#4ade80');P.tag(40,94,'Weight '+f1(o.W,2)+' N','#f87171');P.tag(zx-60,zy+zr+30,'tiny hairs, zoomed','#e2e8f0');}else P.dim(wx-60,120,wx-60,460,'glass wall');},
+  step(st,p,o,dt){st.a=(st.a||0)+dt;if(st.y==null)st.y=300;if(o.ok){st.y-=30*dt;if(st.y<120)st.y=430;}else{st.y=Math.min(430,st.y+120*dt);if(st.y>=430)st.y=200;}}},
  {id:'burr',who:'Nature’s idea: burdock seeds · engineer George de Mestral',year:'1941',name:'Burr → hook-and-loop fastener',note:'',
   story:'After a walk, a Swiss engineer found burrs stuck to his dog. Under a microscope he saw hundreds of tiny hooks catching loops of fur. He copied them to make the hook-and-loop fastener on shoes and bags.',
   params:[['A','Fastener area',1,50,1,10,'cm²'],['h','Hooks in each cm²',50,400,10,300,''],['f','Grip of one hook',5,50,1,20,'mN'],['e','Hooks that catch a loop',10,60,1,30,'%']],
@@ -4449,7 +4449,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   m.appendChild(make('sndbox','Applies to every game, tune and effect. Low is the starting level.'));
   const sv=$('v-sound');if(sv){const b2=make('sndbox2','For everything this screen plays: tunes, chords and samples.');sv.insertBefore(b2,sv.children[1]||null);}
   paint();
-  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 54';m.appendChild(p);})();
+  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 55';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
