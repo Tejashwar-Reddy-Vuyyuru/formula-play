@@ -757,7 +757,7 @@ function buildModel(spec){
   M.presets=pr.map(x=>({name:x.name||(x.kind==="best"?"Best case":"Original"),kind:x.kind==="best"?"best":"original",values:fixVals(M,x.values)}));
   if(!M.presets.length)M.presets=[{name:"Original",kind:"original",values:fixVals(M,{})}];
   M.presets.forEach(x=>{const r=evalM(M,x.values);if(!isFinite(r.out)||!isFinite(r.tgt))throw Error("Model gives no number for preset "+x.name)});
-  const sc=Object.assign({},spec.scene||{});if(!sc.setting&&spec.setting)sc.setting=spec.setting;const TYPES=["rotorcraft","aircraft","vehicle","boat","balloon","energy","structure","flow","launch","submarine","custom"];
+  const sc=Object.assign({},spec.scene||{});if(!sc.setting&&spec.setting)sc.setting=spec.setting;const TYPES=["rotorcraft","aircraft","vehicle","boat","balloon","energy","structure","flow","launch","submarine","guideway","screw","multirotor","glider","kite","rain","scooter","solarcar","solarheater","wxballoon","footbridge","custom"];
   const SETTINGS=["field","road","water","underwater","desert","snow","sky","space","lab","studio"];
   M.scene={setting:SETTINGS.includes(sc.setting)?sc.setting:null,type:TYPES.includes(sc.type)?sc.type:"energy",label:String(sc.label||spec.short||spec.title||""),kind:String(sc.kind||""),source:String(sc.source||""),load:String(sc.load||""),roles:{}};
   Object.entries(sc.roles||{}).forEach(([k,r])=>{try{const o=typeof r==="object"?r:{expr:String(r)};const f=compile(String(o.expr));
@@ -835,7 +835,7 @@ const LIB=[
  output:{label:"Power needed",unit:"W",expr:"T^1.5/sqrt(2*1.225*A)/FM*(1-x^2)"},target:{op:"<=",expr:"Pa",label:"Power available"},
  presets:[{name:"Leonardo's screw",kind:"original",values:{m:150,n:1,D:5,FM:0.15,h:3,Pa:600}},{name:"Atlas-style human heli",kind:"best",values:{m:125,n:4,D:20,FM:0.6,h:3,Pa:600}}],
  story:{goal:"Rise straight up into the air by spinning a screw.",blocker:"A small, inefficient rotor needs enormous power; four men can't supply it.",enabler:"Huge light rotors, efficient blade design and ground effect.",bestCase:"Spread the lift over four giant rotors and stay close to the ground. The human-powered AeroVelo Atlas won the Sikorsky prize in 2013 this way."},
- scene:{type:"rotorcraft",label:"Aerial screw",roles:{levels:{expr:"1"},rotors:{expr:"n"},size:{expr:"D",min:0.2,max:40},load:{expr:"m",min:0.5,max:250}}},
+ scene:{type:"screw",label:"Aerial screw",roles:{levels:{expr:"1"},rotors:{expr:"n"},size:{expr:"D",min:0.2,max:40},load:{expr:"m",min:0.5,max:250}}},
  formulas:["Ideal hover power = T^1.5 ÷ √(2ρA)","Divided by figure of merit; ground effect factor 1 − (R/4h)² (Cheeseman–Bennett)"],assumptions:["Simplified momentum theory","Ground effect approximation is rough very close to the ground"],confidence:"medium"},
 {key:"wireless",setting:"lab",who:"Nikola Tesla · 1901",title:"Could Tesla send power without wires?",short:"Wireless power",
  params:[{id:"d",label:"Distance between coils",unit:"cm",min:1,max:300,log:true},{id:"r",label:"Coil radius",unit:"cm",min:2,max:100,log:true},{id:"Q",label:"Resonance quality (Q)",unit:"",min:5,max:2000,log:true}],
@@ -882,7 +882,7 @@ const LIB=[
  output:{label:"Solar power",unit:"W",expr:"A*eff/100*800*0.9"},target:{op:">=",expr:"Pd",label:"Power to cruise"},
  presets:[{name:"Panels on a normal car",kind:"original",values:{v:60,A:4,eff:18,CdA:0.5,Crr:0.015,m:250}},{name:"Race-car teardrop",kind:"best",values:{v:60,A:6,eff:24,CdA:0.12,Crr:0.006,m:250}}],
  story:{goal:"A car that never needs fuel or charging, running only on sunshine.",blocker:"Sunlight gives only about 1 kW per square metre, and a boxy car wastes most of it pushing air.",enabler:"Efficient solar cells, teardrop bodies and low-friction tires.",bestCase:"A slippery teardrop body with skinny low-friction tires cruises at 60 km/h on about 600 W, which 6 m² of good panels can supply in strong sun."},
- scene:{type:"vehicle",kind:"car",label:"Solar car",roles:{speed:{expr:"v",min:0,max:120}},callouts:[{at:"drag",label:"Air drag",expr:"Pair",unit:"W"},{at:"wheels",label:"Rolling",expr:"Proll",unit:"W"}]},
+ scene:{type:"solarcar",kind:"car",label:"Solar car",roles:{speed:{expr:"v",min:0,max:120}},callouts:[{at:"drag",label:"Air drag",expr:"Pair",unit:"W"},{at:"wheels",label:"Rolling",expr:"Proll",unit:"W"}]},
  formulas:["Power to cruise = ½ρ·CdA·v³ + Crr·m·g·v","Solar power = area × efficiency × 800 W/m² × 90% motor"],assumptions:["Strong sun, 800 W/m² on the panels","Flat road, no wind"],confidence:"high"},
 {key:"sub",setting:"underwater",modelQuery:"submarine",who:"William Beebe · 1930",title:"Could a 1-person sub reach 300 m deep?",short:"Mini submersible",
  params:[{id:"d",label:"Dive depth",unit:"m",min:50,max:1000,log:true,fixed:true},{id:"R",label:"Hull radius",unit:"m",min:0.8,max:1.5},{id:"t",label:"Hull wall thickness",unit:"mm",min:4,max:80,log:true},{id:"sy",label:"Steel strength (yield)",unit:"MPa",min:250,max:900}],
@@ -921,14 +921,14 @@ const LIB=[
  output:{label:"Flight time",unit:"min",expr:"B*0.8/P*60"},target:{op:">=",expr:"20",label:"Trip needs"},
  presets:[{name:"Small camera drone",kind:"original",values:{m:2,n:4,D:0.25,B:100}},{name:"Big-prop hexacopter",kind:"best",values:{m:2,n:6,D:0.5,B:400}}],
  story:{goal:"Fly parcels to doorsteps.",blocker:"Small propellers must push air very fast to hold weight up, which drains the battery in minutes.",enabler:"Bigger, slower propellers and light lithium batteries.",bestCase:"Six 50 cm propellers and a 400 Wh battery hover a 2 kg parcel for about 40 minutes. Bigger batteries add weight, so there is a sweet spot."},
- scene:{type:"rotorcraft",label:"Delivery drone",roles:{rotors:{expr:"n",min:1,max:8},size:{expr:"D",min:0.2,max:0.8},load:{expr:"m",min:0,max:10},levels:{expr:"1",min:1,max:3}},callouts:[{at:"battery",label:"Battery",expr:"B",unit:"Wh"},{at:"fans",label:"Hover power",expr:"P",unit:"W"}]},
+ scene:{type:"multirotor",kind:"drone",label:"Delivery drone",roles:{rotors:{expr:"n",min:1,max:8},size:{expr:"D",min:0.2,max:0.8},load:{expr:"m",min:0,max:10},levels:{expr:"1",min:1,max:3}},callouts:[{at:"battery",label:"Battery",expr:"B",unit:"Wh"},{at:"fans",label:"Hover power",expr:"P",unit:"W"}]},
  formulas:["Hover power = (m g)^1.5 ÷ √(2 ρ A) ÷ 50% (motors and props)","Flight time = 80% of battery ÷ hover power"],assumptions:["Frame 1.5 kg; batteries 200 Wh per kg","Still air, hovering"],confidence:"medium"},
 {key:"glider",setting:"sky",kw:"glider gliding model plane hill distance soar wing glide",who:"Otto Lilienthal · 1891",title:"Could a model glider fly 1 km from a hill?",short:"Model glider",
  params:[{id:"h",label:"Launch height",unit:"m",min:10,max:300,log:true},{id:"LD",label:"Glide ratio (lift ÷ drag)",unit:"",min:3,max:40},{id:"goal",label:"Distance to reach",unit:"m",min:100,max:5000,fixed:true}],
  vars:[],output:{label:"Glide distance",unit:"m",expr:"h*LD"},target:{op:">=",expr:"goal",label:"Distance to reach"},
  presets:[{name:"Flat paper glider, low hill",kind:"original",values:{h:30,LD:8,goal:1000}},{name:"Long thin wings, tall hill",kind:"best",values:{h:60,LD:20,goal:1000}}],
  story:{goal:"Glide as far as possible with no engine.",blocker:"Every glider sinks. Stubby wings lose height fast.",enabler:"Long, thin, smooth wings that slice through the air.",bestCase:"A glide ratio of 20 turns a 60 m hill into a 1.2 km flight. Real sailplanes reach 60 and ride rising air to stay up for hours."},
- scene:{type:"aircraft",label:"Model glider",roles:{span:{expr:"LD",min:3,max:40},flap:{expr:"0",min:0,max:1}},callouts:[{at:"wing",label:"Glide ratio",expr:"LD",unit:""},{at:"body",label:"Distance",expr:"h*LD",unit:"m"}]},
+ scene:{type:"glider",label:"Model glider",roles:{span:{expr:"LD",min:3,max:40}},callouts:[{at:"wing",label:"Glide ratio",expr:"LD",unit:""},{at:"body",label:"Distance",expr:"h*LD",unit:"m"}]},
  formulas:["Glide distance = launch height × glide ratio"],assumptions:["Still air, no rising currents"],confidence:"high"},
 {key:"evcar",setting:"road",kw:"electric car ev range battery charge kilometers miles far distance drive trip",who:"Electric cars · 1890s",title:"Could an electric car drive 500 km on one charge?",short:"Electric car range",
  params:[{id:"B",label:"Battery size",unit:"kWh",min:20,max:150},{id:"m",label:"Car mass",unit:"kg",min:1000,max:2500},{id:"CdA",label:"Drag area (shape)",unit:"m²",min:0.4,max:1},{id:"v",label:"Highway speed",unit:"km/h",min:60,max:130}],
@@ -944,7 +944,7 @@ const LIB=[
  output:{label:"Stress in the beam",unit:"MPa",expr:"Mm/(b*h^2/6)/1e6"},target:{op:"<=",expr:"allow",label:"Allowed stress"},
  presets:[{name:"Thin plank",kind:"original",values:{L:10,h:0.12,b:0.2,allow:10,P:2000}},{name:"Deep wooden beam",kind:"best",values:{L:10,h:0.3,b:0.25,allow:10,P:2000}}],
  story:{goal:"Cross a stream with a simple beam.",blocker:"Long beams bend, and the stress grows fast with span.",enabler:"Deeper beams: doubling the depth makes a beam 4× stronger.",bestCase:"A 30 cm deep wooden beam carries people across 10 m with lots of margin. Depth matters far more than width."},
- scene:{type:"structure",kind:"bridge",label:"Beam bridge",roles:{height:{expr:"h",min:0,max:1},load:{expr:"P/1000",min:0,max:10}},callouts:[{at:"load",label:"Load",expr:"P",unit:"N"},{at:"stress",label:"Stress",expr:"Mm/(b*h^2/6)/1e6",unit:"MPa"}]},
+ scene:{type:"footbridge",label:"Beam bridge",roles:{height:{expr:"h",min:0.08,max:1},span:{expr:"L",min:2,max:30}},callouts:[{at:"load",label:"Load",expr:"P",unit:"N"},{at:"stress",label:"Stress",expr:"Mm/(b*h^2/6)/1e6",unit:"MPa"}]},
  formulas:["Moment = w L² ÷ 8 + P L ÷ 4","Stress = moment ÷ (b h² ÷ 6)"],assumptions:["Wood 600 kg/m³, allowed ≈ 10 MPa; steel ≈ 160","Load at the middle"],confidence:"high"},
 {key:"rocket",setting:"field",kw:"rocket orbit space launch stage fuel spaceship reach",who:"Konstantin Tsiolkovsky · 1903",title:"Could a one-piece rocket reach orbit?",short:"Rocket to orbit",
  params:[{id:"Isp",label:"Engine efficiency (Isp)",unit:"s",min:250,max:460},{id:"pf",label:"Fuel share of the rocket",unit:"%",min:70,max:95}],
@@ -968,7 +968,7 @@ const LIB=[
  output:{label:"Free lift",unit:"kg",expr:"V*1.05-mb"},target:{op:">=",expr:"m*1.2",label:"Payload + 20% to rise"},
  presets:[{name:"Party-size balloon",kind:"original",values:{D:1,mb:0.6,m:1.5}},{name:"Proper weather balloon",kind:"best",values:{D:1.8,mb:1.2,m:1.5}}],
  story:{goal:"Send a camera 30 km up to photograph the curve of the Earth.",blocker:"Each cubic metre of helium lifts only about 1 kg.",enabler:"Large latex balloons that stretch as the air thins.",bestCase:"A 1.8 m balloon lifts a 1.5 kg camera with extra lift to climb steadily. It swells as it rises and pops near 30 km, and the parachute brings the camera home."},
- scene:{type:"balloon",label:"Weather balloon",roles:{size:{expr:"D*5",min:5,max:30},load:{expr:"m*100",min:100,max:1000}},callouts:[{at:"envelope",label:"Helium",expr:"V",unit:"m³"},{at:"basket",label:"Payload",expr:"m",unit:"kg"}]},
+ scene:{type:"wxballoon",label:"Weather balloon",roles:{size:{expr:"D*5",min:4,max:15}},callouts:[{at:"envelope",label:"Helium",expr:"V",unit:"m³"},{at:"basket",label:"Payload",expr:"m",unit:"kg"}]},
  formulas:["Helium lift ≈ 1.05 kg per m³ at sea level","Free lift = helium lift − balloon mass"],assumptions:["Needs air-traffic rules where you live"],confidence:"high"},
 {key:"scooter",setting:"road",kw:"electric scooter hill climb slope steep motor ebike e-bike",who:"E-scooters · 2017",title:"Can an electric scooter climb a steep hill?",short:"Scooter hill climb",
  params:[{id:"P",label:"Motor power",unit:"W",min:250,max:2000,log:true},{id:"s",label:"Hill steepness",unit:"%",min:2,max:20,fixed:true},{id:"v",label:"Climbing speed",unit:"km/h",min:5,max:30},{id:"m",label:"Rider + scooter",unit:"kg",min:50,max:150,fixed:true}],
@@ -976,7 +976,7 @@ const LIB=[
  output:{label:"Motor power",unit:"W",expr:"P"},target:{op:">=",expr:"need",label:"Power to climb"},
  presets:[{name:"250 W scooter at 20 km/h",kind:"original",values:{P:250,s:15,v:20,m:100}},{name:"800 W motor, climb at 12 km/h",kind:"best",values:{P:800,s:15,v:12,m:100}}],
  story:{goal:"Ride up a steep hill without pushing.",blocker:"Lifting 100 kg up a 15% slope takes far more power than riding on the flat.",enabler:"Stronger motors, or simply climbing slower.",bestCase:"An 800 W motor climbs a 15% hill at 12 km/h. Halving the speed halves the power needed."},
- scene:{type:"vehicle",kind:"bike",label:"Electric scooter",roles:{speed:{expr:"v",min:0,max:40}},callouts:[{at:"motor",label:"Motor",expr:"P",unit:"W"},{at:"goal",label:"Needed",expr:"need",unit:"W"}]},
+ scene:{type:"scooter",label:"Electric scooter",roles:{speed:{expr:"v",min:0,max:40}},callouts:[{at:"motor",label:"Motor",expr:"P",unit:"W"},{at:"goal",label:"Needed",expr:"need",unit:"W"}]},
  formulas:["Power = (m g (slope + 0.01) v + ½ ρ CdA v³) ÷ 80%"],assumptions:["CdA 0.5 m², rolling 0.01"],confidence:"high"},
 {key:"maglev",setting:"field",kw:"maglev train magnet fast high speed bullet rail floating",who:"Shanghai Maglev · 2004",title:"Could a maglev train run at 600 km/h?",short:"Maglev train",
  params:[{id:"v",label:"Speed",unit:"km/h",min:200,max:700,fixed:true},{id:"CdA",label:"Drag area (nose shape)",unit:"m²",min:5,max:25},{id:"P",label:"Power available",unit:"MW",min:5,max:40}],
@@ -984,7 +984,7 @@ const LIB=[
  output:{label:"Power available",unit:"MW",expr:"P"},target:{op:">=",expr:"need",label:"Power needed"},
  presets:[{name:"Blunt train, 10 MW",kind:"original",values:{v:600,CdA:15,P:10}},{name:"Long sleek nose, 25 MW",kind:"best",values:{v:600,CdA:6,P:25}}],
  story:{goal:"Float a train on magnets and fly along the ground.",blocker:"With no wheel friction, air drag is everything, and it grows with speed cubed.",enabler:"Long pointed noses and powerful linear motors.",bestCase:"A sleek nose and 25 MW hold 600 km/h. Japan's maglev set a record of 603 km/h in 2015."},
- scene:{type:"vehicle",kind:"train",label:"Maglev train",roles:{speed:{expr:"v",min:0,max:700}},callouts:[{at:"drag",label:"Air drag power",expr:"need",unit:"MW"},{at:"motor",label:"Power",expr:"P",unit:"MW"}]},
+ scene:{type:"guideway",kind:"maglev",label:"Maglev train",roles:{speed:{expr:"v",min:0,max:700}},callouts:[{at:"drag",label:"Air drag power",expr:"need",unit:"MW"},{at:"motor",label:"Magnet motor",expr:"P",unit:"MW"}]},
  formulas:["Power = ½ ρ CdA v³ ÷ 90%"],assumptions:["Magnetic drag ignored; open air"],confidence:"medium"},
 {key:"hyperloop",setting:"field",kw:"hyperloop tube vacuum pod capsule fast travel faster than plane",who:"Hyperloop idea · 2013",title:"Could a pod in a tube beat a plane at 1,000 km/h?",short:"Hyperloop",
  params:[{id:"p",label:"Air pressure in the tube",unit:"% of normal",min:0.1,max:100,log:true},{id:"CdA",label:"Pod drag area",unit:"m²",min:2,max:6},{id:"P",label:"Motor power",unit:"MW",min:0.5,max:20,log:true},{id:"v",label:"Speed",unit:"km/h",min:300,max:1200,fixed:true}],
@@ -992,14 +992,14 @@ const LIB=[
  output:{label:"Motor power",unit:"MW",expr:"P"},target:{op:">=",expr:"need",label:"Power needed"},
  presets:[{name:"Normal air, 5 MW",kind:"original",values:{p:100,CdA:4,P:5,v:1000}},{name:"Near-vacuum tube, 2 MW",kind:"best",values:{p:1,CdA:3,P:2,v:1000}}],
  story:{goal:"Travel between cities faster than a plane, on the ground.",blocker:"At 1,000 km/h, pushing through normal air takes the power of a power station.",enabler:"Pumping most of the air out of the tube.",bestCase:"At 1% of normal air pressure, a pod needs only about 0.4 MW to hold 1,000 km/h. The hard part is keeping hundreds of kilometres of tube airtight."},
- scene:{type:"vehicle",kind:"train",label:"Hyperloop pod",roles:{speed:{expr:"v",min:0,max:1200}},callouts:[{at:"drag",label:"Air power",expr:"need",unit:"MW"},{at:"motor",label:"Motor",expr:"P",unit:"MW"}]},
+ scene:{type:"guideway",kind:"hyperloop",label:"Hyperloop pod",roles:{speed:{expr:"v",min:0,max:1200}},callouts:[{at:"pressure",label:"Tube air",expr:"p",unit:"%"},{at:"drag",label:"Air drag power",expr:"need",unit:"MW"}]},
  formulas:["Power = ½ ρ (p) CdA v³, air density scaled by tube pressure"],assumptions:["Ignores the pressure wave in front of the pod"],confidence:"medium"},
 {key:"rain",setting:"field",kw:"rain water harvest roof tank collect drinking family catch rainwater",who:"Rain cisterns · 3000 BC",title:"Could a roof catch enough rain for a family?",short:"Rain harvesting",
  params:[{id:"A",label:"Roof area",unit:"m²",min:20,max:300},{id:"rain",label:"Rain per year",unit:"mm",min:200,max:2000},{id:"eff",label:"Water kept (gutters, filter)",unit:"%",min:60,max:90},{id:"need",label:"Family uses per year",unit:"L",min:10000,max:200000,fixed:true}],
  vars:[],output:{label:"Rain caught per year",unit:"L",expr:"A*rain*eff/100"},target:{op:">=",expr:"need",label:"Family uses"},
  presets:[{name:"Small shed roof, dry town",kind:"original",values:{A:60,rain:500,eff:80,need:73000}},{name:"Whole house roof, normal rain",kind:"best",values:{A:150,rain:800,eff:85,need:73000}}],
  story:{goal:"Get a family's water from the sky.",blocker:"Small roofs in dry places catch too little.",enabler:"Larger roofs, clean gutters and a big storage tank.",bestCase:"A 150 m² roof with 800 mm of rain catches about 100,000 litres a year, enough for a family of four using 50 litres a day each."},
- scene:{type:"flow",label:"Rain catcher",roles:{rate:{expr:"rain/2000",min:0,max:1},height:{expr:"1",min:0,max:1}},callouts:[{at:"inlet",label:"Rain",expr:"rain",unit:"mm"},{at:"outlet",label:"Caught",expr:"A*rain*eff/100",unit:"L"}]},
+ scene:{type:"rain",label:"Rain catcher",roles:{},callouts:[{at:"inlet",label:"Rain",expr:"rain",unit:"mm"},{at:"outlet",label:"Caught",expr:"A*rain*eff/100",unit:"L"}]},
  formulas:["1 mm of rain on 1 m² = 1 litre"],assumptions:["4 people × 50 L a day; needs a tank for dry months"],confidence:"high"},
 {key:"solarshower",setting:"field",kw:"solar water heater shower hot water sun heating tank",who:"Clarence Kemp · 1891",title:"Could the sun heat a family shower with no electricity?",short:"Solar water heater",
  params:[{id:"A",label:"Collector area",unit:"m²",min:0.5,max:6},{id:"eff",label:"Collector efficiency",unit:"%",min:20,max:70},{id:"sun",label:"Sunshine per day",unit:"kWh/m²",min:2,max:7},{id:"L",label:"Hot water needed",unit:"L",min:40,max:300,fixed:true}],
@@ -1007,7 +1007,7 @@ const LIB=[
  output:{label:"Heat collected per day",unit:"kWh",expr:"A*eff/100*sun"},target:{op:">=",expr:"need",label:"Heat needed"},
  presets:[{name:"Black hose on the roof",kind:"original",values:{A:1,eff:30,sun:4,L:150}},{name:"Glazed collector",kind:"best",values:{A:3,eff:55,sun:4,L:150}}],
  story:{goal:"Hot showers from sunlight alone.",blocker:"A bare pipe loses most of its heat back to the air.",enabler:"Glass-covered, insulated collectors.",bestCase:"3 m² of glazed collector warms 150 litres by 25°C on an ordinary sunny day, enough showers for a family."},
- scene:{type:"energy",label:"Solar water heater",source:"sun",load:"generic",roles:{eff:{expr:"eff/100",min:0,max:1}},callouts:[{at:"source",label:"Sunshine",expr:"sun",unit:"kWh/m²"},{at:"load",label:"Heat",expr:"A*eff/100*sun",unit:"kWh"}]},
+ scene:{type:"solarheater",label:"Solar water heater",roles:{area:{expr:"A",min:0.5,max:6}},callouts:[{at:"source",label:"Sunshine",expr:"sun",unit:"kWh/m²"},{at:"load",label:"Heat",expr:"A*eff/100*sun",unit:"kWh"}]},
  formulas:["Heat = mass × 4,186 J/(kg·°C) × temperature rise"],assumptions:["Water starts at 15°C, heated to 40°C"],confidence:"high"},
 {key:"phonesolar",setting:"field",kw:"phone charge solar panel small portable charger battery smartphone",who:"Solar chargers · 2000s",title:"Can a small solar panel charge my phone in an hour?",short:"Solar phone charger",
  params:[{id:"a",label:"Panel size",unit:"cm²",min:50,max:2000,log:true},{id:"eff",label:"Panel efficiency",unit:"%",min:10,max:24},{id:"sun",label:"Sun strength",unit:"%",min:10,max:100},{id:"bat",label:"Phone battery",unit:"Wh",min:5,max:25,fixed:true}],
@@ -1022,7 +1022,7 @@ const LIB=[
  vars:[],output:{label:"Kite pull",unit:"N",expr:"0.5*1.225*v^2*A*CL"},target:{op:">=",expr:"need",label:"Pull needed"},
  presets:[{name:"Beach kite, light wind",kind:"original",values:{A:3,v:6,CL:0.8,need:300}},{name:"9 m² traction kite, good wind",kind:"best",values:{A:9,v:9,CL:1,need:300}}],
  story:{goal:"Let the wind pull you across the water.",blocker:"Kite force grows with wind speed squared, so light winds barely pull.",enabler:"Large, efficient traction kites and steady wind.",bestCase:"A 9 m² kite in 9 m/s wind pulls about 450 N, enough to plane an adult on a board. Lessons and safety gear come first."},
- scene:{type:"aircraft",label:"Traction kite",roles:{span:{expr:"A",min:2,max:15},flap:{expr:"0",min:0,max:1}},callouts:[{at:"wing",label:"Area",expr:"A",unit:"m²"},{at:"lift",label:"Pull",expr:"0.5*1.225*v^2*A*CL",unit:"N"}]},
+ scene:{type:"kite",label:"Traction kite",roles:{span:{expr:"A",min:2,max:15}},callouts:[{at:"wing",label:"Area",expr:"A",unit:"m²"},{at:"lift",label:"Pull",expr:"0.5*1.225*v^2*A*CL",unit:"N"}]},
  formulas:["Force = ½ ρ v² A CL"],assumptions:["Kite flown steadily, not looping"],confidence:"medium"},
 {key:"tower",setting:"field",kw:"tower skyscraper tall building 1 km kilometre high burj",who:"Burj Khalifa · 828 m",title:"Could a tower stand 1 km tall?",short:"1 km tower",
  params:[{id:"H",label:"Height",unit:"m",min:100,max:3000,fixed:true},{id:"rho",label:"Material density",unit:"kg/m³",min:1500,max:8000},{id:"allow",label:"Material strength (allowed)",unit:"MPa",min:2,max:150,log:true},{id:"tp",label:"Taper (base wider than top)",unit:"×",min:1,max:5}],
@@ -1483,6 +1483,12 @@ const SCENES={
   const sv=moving?R.tr("speed",.5):0;c.strokeStyle=COL.have;c.beginPath();c.arc(gx,gy2,gr,Math.PI*.8,Math.PI*(.8+1.4*sv));c.stroke();const na=Math.PI*(.8+1.4*sv);c.strokeStyle="#fff";c.lineWidth=2;c.beginPath();c.moveTo(gx,gy2);c.lineTo(gx+Math.cos(na)*gr*.8,gy2+Math.sin(na)*gr*.8);c.stroke();
   c.fillStyle="rgba(226,232,240,.7)";c.font="9px Inter";c.textAlign="center";c.fillText("SPEED",gx,gy2+gr+2);A.speed=[gx,gy2]},
 
+ guideway(c,w,h,R,st,A){return SCENES.vehicle(c,w,h,R,st,A)},
+ screw(c,w,h,R,st,A){return SCENES.rotorcraft(c,w,h,R,st,A)},
+ glider(c,w,h,R,st,A){return SCENES.aircraft(c,w,h,R,st,A)}, kite(c,w,h,R,st,A){return SCENES.aircraft(c,w,h,R,st,A)}, rain(c,w,h,R,st,A){return SCENES.flow(c,w,h,R,st,A)},
+ scooter(c,w,h,R,st,A){return SCENES.vehicle(c,w,h,R,st,A)}, solarcar(c,w,h,R,st,A){return SCENES.vehicle(c,w,h,R,st,A)}, solarheater(c,w,h,R,st,A){return SCENES.energy(c,w,h,R,st,A)},
+ wxballoon(c,w,h,R,st,A){return SCENES.balloon(c,w,h,R,st,A)}, footbridge(c,w,h,R,st,A){return SCENES.structure(c,w,h,R,st,A)},
+ multirotor(c,w,h,R,st,A){return SCENES.rotorcraft(c,w,h,R,st,A)},
  submarine(c,w,h,R,st,A){const s=R.s,x=w*.48,y=h*.5+Math.sin(R.t*.6)*4+(R.ok?0:(1-R.frac)*30),L=Math.min(w*.62,260*s),r=L*.13;
   const bg=c.createLinearGradient(0,0,0,h);bg.addColorStop(0,"rgba(14,116,144,.5)");bg.addColorStop(1,"rgba(4,22,39,.85)");c.fillStyle=bg;c.fillRect(0,0,w,h);
   for(let k=0;k<5;k++){c.fillStyle="rgba(186,230,253,.06)";c.beginPath();const bx=w*(.15+k*.18)+Math.sin(R.t*.3+k)*10;c.moveTo(bx-12,0);c.lineTo(bx+12,0);c.lineTo(bx+50,h);c.lineTo(bx-10,h);c.fill()}
