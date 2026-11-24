@@ -33,7 +33,7 @@ const CH = (function () {
   const F = (n, d = 1) => { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); return [n / g, d / g]; };
   const fadd = (a, b) => F(a[0] * b[1] + b[0] * a[1], a[1] * b[1]), fsub = (a, b) => F(a[0] * b[1] - b[0] * a[1], a[1] * b[1]), fmul = (a, b) => F(a[0] * b[0], a[1] * b[1]), fdiv = (a, b) => F(a[0] * b[1], a[1] * b[0]);
   function balance(eqText) {
-    const t = eqText.replace(/⟶|→|-+>|=+>|⇌|<->|=/g, "→"); if (!t.includes("→")) return null;
+    if (!eqText) return null; const t = eqText.replace(/⟶|→|-+>|=+>|⇌|<->|=/g, "→"); if (!t.includes("→")) return null;
     const [l, r] = t.split("→"); const side = s => s.split(/\s\+\s|\s\+|\+\s|(?<=[\da-z)])\+(?=\s*\d*[A-Z(])/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(\d*)\s*(.+?)(\((s|l|g|aq)\))?$/); return { raw: m[2], c: parse(m[2]) }; });
     const L = side(l), R = side(r); if (!L.length || !R.length || [...L, ...R].some(x => !x.c)) return null;
     const sp = [...L, ...R], els = [...new Set(sp.flatMap(x => Object.keys(x.c)))];

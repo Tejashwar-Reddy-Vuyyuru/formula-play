@@ -5,7 +5,7 @@
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const SUBJ = [["math", "➗ Math"], ["physics", "🚀 Physics"], ["chemistry", "⚗️ Chemistry"], ["biology", "🧬 Biology"]];
-  let level = "standard", stopAnim = null, cur = null, forced = null, streak = 0; const ctl = { paused: false, speed: 1, t: 0 };
+  let level = "standard", stopAnim = null, cur = null, forced = null, streak = 0, photoText = null, twinQ = null; const ctl = { paused: false, speed: 1, t: 0 };
   try { const o = JSON.parse(localStorage.getItem("fp-solve") || "{}"); $("#hintmode").checked = !!o.hint; if (o.level) level = o.level; } catch (e) { }
   const savePrefs = () => { try { localStorage.setItem("fp-solve", JSON.stringify({ hint: $("#hintmode").checked, level })); } catch (e) { } };
   $("#hintmode").addEventListener("change", () => { savePrefs(); if (cur) render(cur); });
@@ -24,6 +24,7 @@
   $("#f-cam").onchange = e => readPhoto(e.target.files[0], e.target); $("#f-pic").onchange = e => readPhoto(e.target.files[0], e.target);
   $("#b-paste").onclick = async () => { try { const t = await navigator.clipboard.readText(); if (t && t.trim()) { qEl.value = t.trim(); status.textContent = "Pasted. Check it, then tap Solve it."; forced = null; go(); } else status.textContent = "Nothing to paste. Copy a question first."; } catch (e) { qEl.focus(); status.textContent = "Long-press in the box above and choose Paste."; } };
   $("#b-solve").onclick = () => { forced = null; go(); };
+  { const bb = $("#b-browse"); if (bb) bb.onclick = () => { const d = $("#pickdet"); d.open = true; d.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }; }
   $("#b-clear").onclick = () => { qEl.value = ""; status.textContent = ""; qEl.focus(); };
   qEl.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { forced = null; go(); } });
 
@@ -31,12 +32,28 @@
   function loadTess() { if (window.Tesseract) return Promise.resolve(window.Tesseract); if (tess) return tess; tess = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; s.onload = () => ok(window.Tesseract); s.onerror = () => { tess = null; no(new Error("load")); }; document.head.appendChild(s); }); return tess; }
   async function readPhoto(file, input) { if (!file) return; const url = URL.createObjectURL(file); status.innerHTML = '<img src="' + url + '" alt="Your photo"> Getting the text-reading tool…';
     try { const T = await loadTess(); status.innerHTML = '<img src="' + url + '" alt="Your photo"> Reading the text… <b id="ocrp">0%</b><span class="ocrbar"><i id="ocrbar"></i></span>';
-      const img = await shrink(file); const r = await T.recognize(img, "eng", { logger: m => { const p = $("#ocrp"); if (p && m.status === "recognizing text") { p.textContent = Math.round(m.progress * 100) + "%"; $("#ocrbar").style.width = Math.round(m.progress * 100) + "%"; } } });
+      const img = await prepPhoto(file); const r = await T.recognize(img, "eng", { logger: m => { const p = $("#ocrp"); if (p && m.status === "recognizing text") { p.textContent = Math.round(m.progress * 100) + "%"; $("#ocrbar").style.width = Math.round(m.progress * 100) + "%"; } } });
       let t = (r.data.text || "").replace(/\r/g, "").replace(/-\n/g, "").replace(/\n(?!\n)/g, " ").replace(/\s{2,}/g, " ").replace(/[‘’]/g, "'").replace(/\|/g, "1").trim();
+      t = t.replace(/(^|\s)[eEsSoO_:~'"\-™»«=.,]{3,}(?=\s|$)/g, " ").replace(/(^|\s)(?=[^\s]*[_~™])[^\s\d]{2,}(?=\s|$)/g, " ").replace(/\s{2,}/g, " ").trim().replace(/^\s*(?:Q\.?\s*)?\d{1,3}[.)]\s*(?=[A-Z])/, ""); t = EN.ocrFix(t); const notes = EN.ocrFix.notes || []; const conf = r.data.confidence == null ? 100 : r.data.confidence;
       if (!t) { status.innerHTML = '<img src="' + url + '" alt=""> I couldn\'t read any text. Try a closer, sharper photo, or type it in.'; return; }
-      qEl.value = t; status.innerHTML = '<img src="' + url + '" alt=""> Here\'s what I read. Fix anything that looks wrong, then tap Solve it.'; forced = null; go(); }
+      qEl.value = t; photoText = t; forced = null;
+      const warn = notes.includes("power of ten") ? " Check the <b>×10 powers</b> — small raised numbers are easy to misread." : notes.includes("symbol") ? " Check symbols like <b>², ³, Ω</b> and minus signs." : "";
+      if (conf < 80 || notes.includes("power of ten")) { if (stopAnim) stopAnim(); if (stopMini) stopMini(); stopAnim = stopMini = null; out.innerHTML = ""; showResult(false); scrollTo({ top: 0, behavior: "auto" }); status.innerHTML = '<img src="' + url + '" alt=""> <b>This photo was hard to read.</b> Check the question above against your page, fix anything wrong, then tap <b>✨ Solve it</b>.' + warn + ' Tip: a closer, flat, well-lit photo of just one question works best.'; qEl.focus(); return; }
+      status.innerHTML = '<img src="' + url + '" alt=""> Here\'s what I read.' + (warn || " Fix anything that looks wrong, then tap Solve it."); go(); }
     catch (e) { status.innerHTML = "The text-reading tool needs an internet connection the first time. You can type the question instead."; }
     finally { input.value = ""; setTimeout(() => URL.revokeObjectURL(url), 60000); } }
+  /* make a photo easier to read: grey, even out shadows, stretch contrast, right size */
+  function prepPhoto(file) { return new Promise(ok => { const im = new Image(); im.onload = () => { try { let W = im.width, H = im.height; const s = Math.min(2200 / Math.max(W, H), Math.max(1, 1400 / W)); W = Math.round(W * s); H = Math.round(H * s);
+      const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d", { willReadFrequently: true }); x.imageSmoothingQuality = "high"; x.drawImage(im, 0, 0, W, H);
+      const sw = Math.max(1, Math.round(W / 16)), sh = Math.max(1, Math.round(H / 16)); const b = document.createElement("canvas"); b.width = sw; b.height = sh; const bx = b.getContext("2d", { willReadFrequently: true }); bx.drawImage(c, 0, 0, sw, sh);
+      const bd = bx.getImageData(0, 0, sw, sh), bp = bd.data, L = new Float32Array(sw * sh); for (let i = 0; i < sw * sh; i++) L[i] = .299 * bp[i * 4] + .587 * bp[i * 4 + 1] + .114 * bp[i * 4 + 2];
+      const M = new Float32Array(sw * sh); for (let yy = 0; yy < sh; yy++) for (let xx = 0; xx < sw; xx++) { let m = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.min(sw - 1, Math.max(0, xx + dx)), Y = Math.min(sh - 1, Math.max(0, yy + dy)); m = Math.max(m, L[Y * sw + X]); } M[yy * sw + xx] = m; }
+      for (let i = 0; i < sw * sh; i++) { bp[i * 4] = bp[i * 4 + 1] = bp[i * 4 + 2] = M[i]; } bx.putImageData(bd, 0, 0); const bg = document.createElement("canvas"); bg.width = W; bg.height = H; const gx = bg.getContext("2d", { willReadFrequently: true }); gx.filter = "blur(" + Math.round(W / 40) + "px)"; gx.drawImage(b, 0, 0, W, H);
+      const d = x.getImageData(0, 0, W, H), p = d.data, g = gx.getImageData(0, 0, W, H).data, hist = new Uint32Array(256), out = new Uint8ClampedArray(W * H);
+      for (let i = 0, j = 0; i < p.length; i += 4, j++) { const v = .299 * p[i] + .587 * p[i + 1] + .114 * p[i + 2]; const o = Math.min(255, v * 255 / Math.max(1, g[i])); out[j] = o; hist[o | 0]++; }
+      let lo = 0, hi = 255, acc = 0; const cut = W * H * .01; for (; lo < 255 && (acc += hist[lo]) < cut; lo++); acc = 0; for (; hi > 0 && (acc += hist[hi]) < cut; hi--); const span = Math.max(1, hi - lo);
+      for (let i = 0, j = 0; i < p.length; i += 4, j++) { const o = Math.max(0, Math.min(255, (out[j] - lo) * 255 / span)); p[i] = p[i + 1] = p[i + 2] = o; } x.putImageData(d, 0, 0);
+      c.toBlob(bl => ok(bl || file), "image/png"); } catch (e) { shrink(file).then(ok); } }; im.onerror = () => ok(file); im.src = URL.createObjectURL(file); }); }
   function shrink(file) { return new Promise(ok => { const im = new Image(); im.onload = () => { const m = 1600 / Math.max(im.width, im.height); if (m >= 1) return ok(file); const c = document.createElement("canvas"); c.width = im.width * m; c.height = im.height * m; c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); c.toBlob(b => ok(b || file), "image/jpeg", .92); }; im.onerror = () => ok(file); im.src = URL.createObjectURL(file); }); }
 
   /* ---------- solving ---------- */
@@ -64,7 +81,9 @@
   addEventListener("popstate", () => { if (bigWrap) closeBig(false); });
   addEventListener("keydown", e => { if (e.key === "Escape" && bigWrap) closeBig(true); });
   const numHi = s => esc(s).replace(/(^|[^A-Za-z₀-₉])(-?\d[\d,]*\.?\d*(?: × 10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)/g, '$1<span class="nm">$2</span>');
-  function questionCard(r, card, readHtml) { return card("qcard", '<div class="qtag">❓ The question</div><div class="qtext">' + esc(qEl.value.trim() || r.text) + '</div>' + (readHtml || "")); }
+  function questionCard(r, card, readHtml) { const q = qEl.value.trim() || r.text || ""; const built = EN.ALL().some(T => T.ex === q) || q === twinQ; const photo = photoText && q === photoText;
+    const note = built ? "" : '<div class="testnote">🧪 ' + (photo ? "Read from your photo — check the question matches your page. " : "") + 'Solve it is still in testing, so please double-check this answer. Built-in questions are the most accurate.</div>';
+    return card("qcard", '<div class="qtag">❓ The question</div><div class="qtext">' + esc(q) + '</div>' + (readHtml || "") + note); }
 
   function render(r, keep) { if (bigWrap) closeBig(true); document.querySelectorAll("body > .scenewrap").forEach(n => n.remove()); if (stopAnim) stopAnim(); if (stopMini) stopMini(); stopAnim = stopMini = null; document.body.classList.remove("noscroll"); out.classList.toggle("still", !!keep); out.innerHTML = ""; showResult(true); if (r.kind === "breakdown") return renderBreakdown(r);
     const hint = $("#hintmode").checked; const h = []; let ci = 0; const card = (cls, inner, id) => '<section class="card res ' + (cls || "") + '"' + (id ? ' id="' + id + '"' : "") + ' style="--i:' + (ci++) + '">' + inner + "</section>";
@@ -76,6 +95,7 @@
       if (r.unknownVars.length > 1) ed += '<div class="row" style="margin-top:10px"><b style="font-size:14px">Find:</b><select id="findsel">' + r.unknownVars.map(v => '<option value="' + v.id + '"' + (v.id === r.find ? " selected" : "") + ">" + esc(v.label) + "</option>").join("") + "</select></div>";
       const add = r.T.vars.filter(V => !r.given.some(g => g.id === V.id) && V.id !== r.find); if (add.length) ed += '<div class="row" style="margin-top:8px"><b style="font-size:13px;color:var(--dim)">Missed a number?</b><select id="addsel"><option value="">Add a value…</option>' + add.map(V => '<option value="' + V.id + '">' + esc(V.label) + (V.unit ? " (" + esc(V.unit) + ")" : "") + "</option>").join("") + "</select></div>";
       read += ed + "</div>"; }
+    if (r.unused && r.unused.length) read += '<div class="warnbanner" style="margin-top:10px">⚠️ I didn\'t use: ' + r.unused.map(q => esc(q.raw.trim())).join(", ") + '. If they matter, this question may have more parts than I solved. Check with 🔢 Change numbers or Wrong type?.</div>';
     h.push(questionCard(r, card, read));
     /* answer */
     const a0 = r.answers[0];
@@ -115,7 +135,7 @@
       const newTwin = () => { try { tw = r.twin(); } catch (e) { tw = null; } if (!tw) { $("#tq").textContent = "No practice question for this one yet."; return; } tries = 0; const q = $("#tq"); q.classList.remove("pop"); void q.offsetWidth; q.classList.add("pop"); q.textContent = tw.q; $("#ta").value = ""; $("#tv").textContent = ""; $("#tv").className = "verdict"; };
       newTwin(); $("#b-new").onclick = newTwin; const check = () => { if (!tw) return; const v = $("#ta").value.trim(); if (!v) { $("#ta").focus(); return; } tries++; if (tw.check(v)) { $("#tv").textContent = "✓ Correct! " + (tw.ansText ? "(" + tw.ansText + ")" : ""); $("#tv").className = "verdict ok"; if (tries === 1) streak++; paintStreak(); confetti(); try { navigator.vibrate && navigator.vibrate(30); } catch (e) { } } else { if (tries >= 2) streak = 0; paintStreak(); $("#tv").textContent = tries < 2 ? "Not quite. Check your units and try again." : "The answer is " + tw.ansText + ". Tap 'Show me how' to see the steps."; $("#tv").className = "verdict no shake"; } };
       $("#b-check").onclick = check; $("#ta").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
-      $("#b-twinsolve").onclick = () => { if (!tw) return; qEl.value = tw.q; if (tw.vals && r.redo) { cur = r.redo(tw.vals, r.find); cur.ranked = r.ranked; ctl.t = 0; render(cur); scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); } else { forced = r.type; go(); } }; } }
+      $("#b-twinsolve").onclick = () => { if (!tw) return; qEl.value = tw.q; twinQ = tw.q; if (tw.vals && r.redo) { cur = r.redo(tw.vals, r.find); cur.ranked = r.ranked; ctl.t = 0; render(cur); scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); } else { forced = r.type; go(); } }; } }
 
   /* ---------- explanations + guided step player ---------- */
   function explain(r, l) { const a0 = r.answers[0]; const idea = '<div class="box idea"><h4>💡 The big idea</h4>' + esc(r.idea || "") + "</div>";
@@ -154,7 +174,7 @@
   /* ---------- break it down ---------- */
   function renderBreakdown(r) { const h = []; let ci = 0; const card = (inner) => '<section class="card res" style="--i:' + (ci++) + '">' + inner + "</section>"; const KC = { length: "#38bdf8", time: "#a78bfa", mass: "#34d399", speed: "#fb923c", force: "#f87171", energy: "#facc15", temp: "#ef4444", volume: "#22d3ee", none: "#9ca3af" };
     h.push('<section class="card res qcard" style="--i:' + (ci++) + '"><div class="qtag">❓ The question</div><div class="qtext">' + esc(qEl.value.trim() || r.text) + '</div></section>');
-    h.push(card('<h2>🧩 Break it down</h2><div class="warnbanner">This is a breakdown to help you start, not a checked answer.</div>' + (r.tried ? '<p class="lead" style="margin-top:8px">I tried "' + esc(r.tried.name) + '" but couldn\'t finish it with these numbers.</p>' : '<p class="lead" style="margin-top:8px">I don\'t have a solver for this exact problem yet, but here\'s everything in it, laid out.</p>')));
+    h.push(card('<h2>🧩 Break it down</h2><div class="warnbanner">This is a breakdown to help you start, not a checked answer.</div>' + (r.partial && r.partial.multiStage ? '<p class="lead" style="margin-top:8px">This question has more than one stage (it says "then" or similar). I can\'t chain stages yet, so here\'s each number laid out instead. Tip: solve each stage separately by typing it as its own question.</p>' : r.tried ? '<p class="lead" style="margin-top:8px">I tried "' + esc(r.tried.name) + '" but couldn\'t finish it with these numbers.</p>' : '<p class="lead" style="margin-top:8px">I don\'t have a solver for this exact problem yet, but here\'s everything in it, laid out.</p>')));
     if (r.ask) h.push(card('<h3>❓ What it asks</h3><div class="box">' + esc(r.ask) + "</div>"));
     if (r.items.length) { h.push(card('<h3>📋 What it gives you</h3><table class="given"><tr><th>Number</th><th>Kind</th><th>In standard units</th></tr>' + r.items.map(i => "<tr><td><b>" + esc(i.raw) + "</b>" + (i.ctx ? "<br><span style='color:var(--dim);font-size:12px'>…" + esc(i.ctx) + "</span>" : "") + "</td><td>" + esc(i.kind) + "</td><td>" + (i.unit && i.dim !== "none" ? esc(SV.fmtU(i.base, i.baseU)) : "—") + "</td></tr>").join("") + "</table>"));
       const groups = {}; r.items.forEach(i => { (groups[i.dim] = groups[i.dim] || []).push(i); }); h.push(card('<h3>📊 Quantities by kind</h3><p class="lead">Same colour = same kind of quantity. Only same-kind numbers can be added or compared.</p><div class="qbars">' + Object.entries(groups).map(([d, list]) => { const mx = Math.max(...list.map(i => Math.abs(i.base))) || 1; return list.map(i => '<div class="qb"><span>' + esc(i.raw) + '</span><div class="track"><div class="fill" style="width:' + Math.max(4, Math.abs(i.base) / mx * 100) + "%;background:" + (KC[d] || "#38bdf8") + '"></div></div></div>').join(""); }).join("") + "</div>")); }
