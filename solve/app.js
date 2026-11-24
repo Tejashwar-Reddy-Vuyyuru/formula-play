@@ -30,18 +30,38 @@
 
   let tess = null;
   function loadTess() { if (window.Tesseract) return Promise.resolve(window.Tesseract); if (tess) return tess; tess = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; s.onload = () => ok(window.Tesseract); s.onerror = () => { tess = null; no(new Error("load")); }; document.head.appendChild(s); }); return tess; }
-  async function readPhoto(file, input) { if (!file) return; const url = URL.createObjectURL(file); status.innerHTML = '<img src="' + url + '" alt="Your photo"> Getting the text-reading tool…';
-    try { const T = await loadTess(); status.innerHTML = '<img src="' + url + '" alt="Your photo"> Reading the text… <b id="ocrp">0%</b><span class="ocrbar"><i id="ocrbar"></i></span>';
-      const img = await prepPhoto(file); const r = await T.recognize(img, "eng", { logger: m => { const p = $("#ocrp"); if (p && m.status === "recognizing text") { p.textContent = Math.round(m.progress * 100) + "%"; $("#ocrbar").style.width = Math.round(m.progress * 100) + "%"; } } });
-      let t = (r.data.text || "").replace(/\r/g, "").replace(/-\n/g, "").replace(/\n(?!\n)/g, " ").replace(/\s{2,}/g, " ").replace(/[‘’]/g, "'").replace(/\|/g, "1").trim();
-      t = t.replace(/(^|\s)[eEsSoO_:~'"\-™»«=.,]{3,}(?=\s|$)/g, " ").replace(/(^|\s)(?=[^\s]*[_~™])[^\s\d]{2,}(?=\s|$)/g, " ").replace(/\s{2,}/g, " ").trim().replace(/^\s*(?:Q\.?\s*)?\d{1,3}[.)]\s*(?=[A-Z])/, ""); t = EN.ocrFix(t); const notes = EN.ocrFix.notes || []; const conf = r.data.confidence == null ? 100 : r.data.confidence;
+  const cleanRead = t => { t = String(t || "").replace(/\r/g, "").replace(/-\n/g, "").replace(/\n(?!\n)/g, " ").replace(/\s{2,}/g, " ").replace(/[‘’]/g, "'").replace(/\|/g, "1").trim();
+    t = t.replace(/(^|\s)[eEsSoO_:~'"\-™»«=.,]{3,}(?=\s|$)/g, " ").replace(/(^|\s)(?=[^\s]*[_~™])[^\s\d]{2,}(?=\s|$)/g, " ").replace(/\s{2,}/g, " ").trim().replace(/^\s*(?:Q\.?\s*)?\d{1,3}[.)]\s*(?=[A-Z])/, ""); return EN.ocrFix(t); };
+  /* find the lines of the picked question on the photo and return a padded box around them */
+  function findBox(lines, q, W, H) { if (!lines || !lines.length || !q) return null; const toks = s => (s.toLowerCase().match(/[a-z0-9]{3,}/g) || []); const Q = new Set(toks(q)); if (Q.size < 3) return null;
+    const L = lines.filter(l => l && l.bbox && l.text).map(l => { const tk = toks(l.text); const hit = tk.filter(x => Q.has(x)).length; return { b: l.bbox, ok: tk.length && hit / tk.length >= .6 && hit >= 1, part: hit >= 1 }; }).sort((x, y) => x.b.y0 - y.b.y0);
+    let best = null, run = null; L.forEach(l => { if (!l.ok) return; const lh = l.b.y1 - l.b.y0; if (run && l.b.y0 - run.y1 < 2.5 * Math.max(lh, 10)) { run.x0 = Math.min(run.x0, l.b.x0); run.x1 = Math.max(run.x1, l.b.x1); run.y1 = Math.max(run.y1, l.b.y1); run.n++; } else { run = { x0: l.b.x0, y0: l.b.y0, x1: l.b.x1, y1: l.b.y1, n: 1, lh }; } if (!best || run.n > best.n) best = run; });
+    if (!best) return null; const grow = l => { best.x0 = Math.min(best.x0, l.b.x0); best.x1 = Math.max(best.x1, l.b.x1); best.y0 = Math.min(best.y0, l.b.y0); best.y1 = Math.max(best.y1, l.b.y1); };
+    const ia = L.findIndex(l => l.ok && l.b.y0 >= best.y0 - 1), ib = L.map(l => l.ok && l.b.y1 <= best.y1 + 1).lastIndexOf(true); if (ia > 0 && L[ia - 1].part && best.y0 - L[ia - 1].b.y1 < 2.5 * best.lh) grow(L[ia - 1]); if (ib >= 0 && ib < L.length - 1 && L[ib + 1].part && L[ib + 1].b.y0 - best.y1 < 2.5 * best.lh) grow(L[ib + 1]);
+    const px = W * .025, py = best.lh * .8; const b = { x: Math.max(0, best.x0 - px), y: Math.max(0, best.y0 - py) }; b.w = Math.min(W, best.x1 + px) - b.x; b.h = Math.min(H, best.y1 + py) - b.y;
+    return b.w * b.h > W * H * .85 || b.w < 40 || b.h < 15 ? null : b; }
+  function cropOf(cv, b) { const s = Math.max(1, Math.min(2.5, 1400 / b.w)); const c = document.createElement("canvas"); c.width = Math.round(b.w * s); c.height = Math.round(b.h * s); const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingQuality = "high"; x.drawImage(cv, b.x, b.y, b.w, b.h, 0, 0, c.width, c.height); return new Promise(ok => c.toBlob(bl => ok(bl), "image/png")); }
+  async function readPhoto(file, input) { if (!file) return; let url = URL.createObjectURL(file); const furl = url; status.innerHTML = '<img src="' + url + '" alt="Your photo"> Getting the text-reading tool…';
+    const logger = m => { const p = $("#ocrp"); if (p && m.status === "recognizing text") { p.textContent = Math.round(m.progress * 100) + "%"; $("#ocrbar").style.width = Math.round(m.progress * 100) + "%"; } };
+    try { const T = await loadTess(); status.innerHTML = '<img src="' + url + '" alt="Your photo"> Finding the question… <b id="ocrp">0%</b><span class="ocrbar"><i id="ocrbar"></i></span>';
+      const img = await prepPhoto(file); const cv = prepPhoto.canvas; let r = await T.recognize(img, "eng", { logger });
+      let pick = EN.pickQuestion(r.data.text || ""); let conf = r.data.confidence == null ? 100 : r.data.confidence;
+      if (pick.from === "appNoQ") { if (stopAnim) stopAnim(); if (stopMini) stopMini(); stopAnim = stopMini = null; out.innerHTML = ""; showResult(false); status.innerHTML = '<img src="' + url + '" alt=""> This looks like a Solve it answer screen, but the question itself isn\'t in the picture. Scroll up so the question shows and try again, or type it in.'; return; }
+      const box = cv && findBox(r.data.lines, pick.text, cv.width, cv.height);
+      if (box) { const bl = await cropOf(cv, box); if (bl) { const curl = URL.createObjectURL(bl); status.innerHTML = '<img src="' + curl + '" alt="The question I found"> ✂️ Found the question — reading it closely… <b id="ocrp">0%</b><span class="ocrbar"><i id="ocrbar"></i></span>';
+          const r2 = await T.recognize(bl, "eng", { logger }); const p2 = EN.pickQuestion(r2.data.text || ""); const tk = s => (String(s).toLowerCase().match(/[a-z0-9]{3,}/g) || []), T1 = tk(pick.text), S2 = new Set(tk(p2.text)), cov = T1.length ? T1.filter(x => S2.has(x)).length / T1.length : 0;
+          if (p2.text && /\d/.test(p2.text) && p2.from !== "appNoQ" && cov >= .9) { pick = { text: p2.text, others: pick.others, from: pick.from }; conf = r2.data.confidence == null ? conf : Math.max(conf, r2.data.confidence); url = curl; } else url = curl; } }
+      let t = cleanRead(pick.text); const notes = EN.ocrFix.notes || [];
       if (!t) { status.innerHTML = '<img src="' + url + '" alt=""> I couldn\'t read any text. Try a closer, sharper photo, or type it in.'; return; }
+      const more = (pick.others || []).map(cleanRead).filter(Boolean);
+      const moreHtml = more.length ? '<div class="morech"><span>Also in this photo:</span>' + more.map((q, i) => '<button type="button" class="chip" data-mq="' + i + '">' + esc(q.length > 48 ? q.slice(0, 46) + "…" : q) + '</button>').join("") + '</div>' : "";
+      const bindMore = () => status.querySelectorAll("[data-mq]").forEach(b => b.onclick = () => { const q = more[+b.dataset.mq]; qEl.value = q; photoText = q; forced = null; go(); });
       qEl.value = t; photoText = t; forced = null;
       const warn = notes.includes("power of ten") ? " Check the <b>×10 powers</b> — small raised numbers are easy to misread." : notes.includes("symbol") ? " Check symbols like <b>², ³, Ω</b> and minus signs." : "";
-      if (conf < 80 || notes.includes("power of ten")) { if (stopAnim) stopAnim(); if (stopMini) stopMini(); stopAnim = stopMini = null; out.innerHTML = ""; showResult(false); scrollTo({ top: 0, behavior: "auto" }); status.innerHTML = '<img src="' + url + '" alt=""> <b>This photo was hard to read.</b> Check the question above against your page, fix anything wrong, then tap <b>✨ Solve it</b>.' + warn + ' Tip: a closer, flat, well-lit photo of just one question works best.'; qEl.focus(); return; }
-      status.innerHTML = '<img src="' + url + '" alt=""> Here\'s what I read.' + (warn || " Fix anything that looks wrong, then tap Solve it."); go(); }
+      if (conf < 80 || notes.includes("power of ten")) { if (stopAnim) stopAnim(); if (stopMini) stopMini(); stopAnim = stopMini = null; out.innerHTML = ""; showResult(false); scrollTo({ top: 0, behavior: "auto" }); status.innerHTML = '<img src="' + url + '" alt=""> <b>This photo was hard to read.</b> Check the question above against your page, fix anything wrong, then tap <b>✨ Solve it</b>.' + warn + ' Tip: a closer, flat, well-lit photo of just one question works best.' + moreHtml; bindMore(); qEl.focus(); return; }
+      status.innerHTML = '<img src="' + url + '" alt=""> Here\'s what I read.' + (warn || " Fix anything that looks wrong, then tap Solve it.") + moreHtml; bindMore(); go(); }
     catch (e) { status.innerHTML = "The text-reading tool needs an internet connection the first time. You can type the question instead."; }
-    finally { input.value = ""; setTimeout(() => URL.revokeObjectURL(url), 60000); } }
+    finally { input.value = ""; setTimeout(() => URL.revokeObjectURL(furl), 60000); } }
   /* make a photo easier to read: grey, even out shadows, stretch contrast, right size */
   function prepPhoto(file) { return new Promise(ok => { const im = new Image(); im.onload = () => { try { let W = im.width, H = im.height; const s = Math.min(2200 / Math.max(W, H), Math.max(1, 1400 / W)); W = Math.round(W * s); H = Math.round(H * s);
       const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d", { willReadFrequently: true }); x.imageSmoothingQuality = "high"; x.drawImage(im, 0, 0, W, H);
@@ -53,7 +73,7 @@
       for (let i = 0, j = 0; i < p.length; i += 4, j++) { const v = .299 * p[i] + .587 * p[i + 1] + .114 * p[i + 2]; const o = Math.min(255, v * 255 / Math.max(1, g[i])); out[j] = o; hist[o | 0]++; }
       let lo = 0, hi = 255, acc = 0; const cut = W * H * .01; for (; lo < 255 && (acc += hist[lo]) < cut; lo++); acc = 0; for (; hi > 0 && (acc += hist[hi]) < cut; hi--); const span = Math.max(1, hi - lo);
       for (let i = 0, j = 0; i < p.length; i += 4, j++) { const o = Math.max(0, Math.min(255, (out[j] - lo) * 255 / span)); p[i] = p[i + 1] = p[i + 2] = o; } x.putImageData(d, 0, 0);
-      c.toBlob(bl => ok(bl || file), "image/png"); } catch (e) { shrink(file).then(ok); } }; im.onerror = () => ok(file); im.src = URL.createObjectURL(file); }); }
+      prepPhoto.canvas = c; c.toBlob(bl => ok(bl || file), "image/png"); } catch (e) { prepPhoto.canvas = null; shrink(file).then(ok); } }; im.onerror = () => ok(file); im.src = URL.createObjectURL(file); }); }
   function shrink(file) { return new Promise(ok => { const im = new Image(); im.onload = () => { const m = 1600 / Math.max(im.width, im.height); if (m >= 1) return ok(file); const c = document.createElement("canvas"); c.width = im.width * m; c.height = im.height * m; c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); c.toBlob(b => ok(b || file), "image/jpeg", .92); }; im.onerror = () => ok(file); im.src = URL.createObjectURL(file); }); }
 
   /* ---------- solving ---------- */
