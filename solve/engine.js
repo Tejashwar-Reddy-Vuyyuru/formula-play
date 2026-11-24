@@ -463,10 +463,9 @@ const EN = (function (SV, ST, CH) {
     raw = String(raw || "").replace(/\r/g, "").replace(/-\n(?=[a-z])/g, "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
     const flat = raw.replace(/\s*\n\s*/g, " ").replace(/\s{2,}/g, " ").trim();
     // our own result screen: the question sits between "THE QUESTION" and "I read:"
-    const own = [...flat.matchAll(/THE QUESTION\s*(.+?)\s*(?:[|Il1!]\s*read\s*:|Change numbers|Wrong type|\b1?\s*Answer\b|$)/gi)].map(m => m[1].split(/THE QUESTION/i).pop().replace(/^[\s?:.\-]+/, "").trim()).filter(s => /\d/.test(s) && /[a-z]{3}/.test(s));
+    const own = [...flat.matchAll(/THE\s*QU[EF]ST[I1l|!]?[O0]N\s*(.+?)\s*(?:[|Il1!]\s*read\s*:|Change numbers|Wrong type|\b1?\s*Answer\b|$)/gi)].map(m => m[1].split(/THE\s*QU[EF]ST[I1l|!]?[O0]N/i).pop().replace(/^[\s?:.\-]+/, "").trim()).filter(s => /\d/.test(s) && /[a-z]{3}/.test(s));
     if (own.length) { own.sort((a, b) => b.length - a.length); return { text: own[0], others: [], from: "app" }; }
     const appMarks = (flat.match(/I didn'?t use|Find: [A-Z]|Change numbers|Wrong type|Read from your photo|still in testing|Same kind of problem|Your turn|Step by step|Deep dive/gi) || []).length;
-    if (appMarks >= 2) return { text: "", others: [], from: "appNoQ" };
     const words = s => (s.match(/[A-Za-z]{3,}/g) || []).filter(w => /[a-z]/.test(w)).length;
     const tidy = s => { s = s.replace(UI_JUNK, " ").replace(/\s{2,}/g, " ").trim(); let S = s.split(/(?<=[.?!])\s+(?=[A-Z0-9(−-])/);
       while (S.length > 1 && ((words(S[0]) < 3 && !(/\d/.test(S[0]) && !/\b[345]G\b/.test(S[0]) && words(S[0]) >= 1)) || /^\W*\d{1,2}:\d{2}\b/.test(S[0]) || /\b(5G|4G|LTE|Wi-?Fi)\b/.test(S[0]) && words(S[0]) < 6)) S.shift();
@@ -475,7 +474,9 @@ const EN = (function (SV, ST, CH) {
       return S.join(" ").replace(/^\s*(?:Q\.?\s*|Question\s*|Problem\s*|Exercise\s*)?\d{1,3}\s*[.):]\s*(?=[A-Z(])/i, "").trim(); };
     const items = []; raw.split(/\n\s*\n/).forEach(b => { const fb = b.replace(/\s*\n\s*/g, " ").trim(); if (!fb) return; fb.split(/(?:^|\s)(?=(?:Q\.?\s*)?\d{1,3}[.)]\s+[A-Z(])/).forEach(p => { if (p.trim()) items.push(p.trim()); }); });
     const C = []; for (let i = 0; i < items.length; i++) { let s = items[i]; while (i + 1 < items.length && !/[.?!:]\s*$/.test(s) && /^[a-z0-9(−\-]/.test(items[i + 1]) && !/^\d{1,3}[.)]\s/.test(items[i + 1])) s += " " + items[++i]; while (i + 1 < items.length && CUE.test(items[i + 1]) && !/\d/.test(items[i + 1]) && !/^(?:Q\.?\s*)?\d{1,3}[.)]\s/.test(items[i + 1]) && items[i + 1].length < 160) s += " " + items[++i]; if (!CUE.test(s) && /\d/.test(s) && i + 1 < items.length && CUE.test(items[i + 1]) && !/^(?:Q\.?\s*)?\d{1,3}[.)]\s/.test(items[i + 1])) { s += " " + items[i + 1]; i++; } const t = tidy(s); if (CUE.test(t) && /\d/.test(t) && words(t) >= 2) C.push(t); }
-    const uniq = [...new Set(C)];
+    let uniq = [...new Set(C)];
+    if (appMarks >= 2) { uniq = uniq.filter(s => !/I didn'?t use|may have more parts|If they matter|still in testing|Read from your photo|double-check|Built-in questions|Check with|Find: [A-Z]|Change numbers|Wrong type|I read|Same idea, new numbers|Your answer/i.test(s) && !/^[^?]*\b[A-Z][a-z]+(?: [a-z]+){0,5} = -?[\d,.]+/.test(s)).map(s => s.replace(/\s+(?:[|Il1!]\s*read\s*:|\d?\s*Answer\b).*$/i, "").replace(/^.*\bQU[EF]ST[I1l|!]?[O0]N\s*/i, "").trim()).filter(s => /\d/.test(s) && CUE.test(s));
+      if (!uniq.length) return { text: "", others: [], from: "appNoQ" }; return { text: uniq[0], others: [], from: "app" }; }
     if (!uniq.length) return { text: tidy(flat) || flat, others: [], from: "all" };
     return { text: uniq[0], others: uniq.slice(1, 6), from: "blocks" }; }
   function ocrFix(t0) { let t = String(t0); const notes = [];
