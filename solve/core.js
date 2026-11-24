@@ -117,9 +117,26 @@ const SV = (function () {
   function swapIds(T, tpl, fn) { const ids = T.vars.map(x => x.id).concat(Object.keys(T.consts || {})).sort((a, b) => b.length - a.length); return tpl.replace(new RegExp("(?<![A-Za-z0-9_])(" + ids.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")(?![A-Za-z0-9_])", "g"), m => fn(m)); }
   function valStr(T, v, id) { const q = T.vars.find(x => x.id === id); if (!q) return fmt(v[id]); return fmtU(v[id], q.unit); }
   const pretty = s => s.replace(/mx\(0,((?:[^()]|\([^()]*\))*)\)/g, "$1").replace(/\*\*/g, "^").replace(/\s*\*\s*/g, " × ").replace(/sqrt/g, "√").replace(/\^2(?![0-9.])/g, "²").replace(/\^3(?![0-9.])/g, "³").replace(/\b(PI|pi)\b/g, "π").replace(/\s*\/\s*/g, " ÷ ").replace(/\s*([+])\s*/g, " + ").replace(/(\w|\))-(\w|\()/g, "$1 − $2");
-  function stepLines(T, sol) { return sol.steps.map(s => { if (s.together) return { title: "Solve them together", lines: ["The remaining unknowns (" + s.unk.map(id => symOf(T, id)).join(", ") + ") appear in more than one equation, so they're found together:", ...s.unk.map(id => symOf(T, id) + " = " + valStr(T, sol.v, id))] };
+  const CONST_WHY = { g: "the pull of gravity on Earth", G: "the gravity constant", R: "the gas constant", NA: "Avogadro's number", pi: "π", PI: "π", c: "the speed of light", k: "Coulomb's constant", h: "Planck's constant", e: "the charge on one electron" };
+  const SRC_WHY = { read: "from the question", you: "your number", assumed: "a standard value we assume because the question didn't give it" };
+  function whyStep(T, s, sol, meta, idx, all) { meta = meta || {}; const src = meta.src || {}, srcTxt = meta.srcTxt || {};
+    const lab = id => { const q = T.vars.find(x => x.id === id); return q ? q.label.toLowerCase() : id; };
+    if (s.together) return "These unknowns each show up in more than one formula, so we can't find them one at a time. Instead we solve the formulas together, like a pair of simultaneous equations, until every formula is true at once.";
+    const t = s.target, e = s.eq; if (!s.tpl) return ""; const used = [...new Set((swapIds(T, s.tpl, id => "\u0001" + id + "\u0002").match(/\u0001[^\u0002]+\u0002/g) || []).map(x => x.slice(1, -1)))].filter(id => id !== t);
+    const later = all.slice(idx + 1).some(o => o.tpl && new RegExp("(?<![A-Za-z0-9_])" + t + "(?![A-Za-z0-9_])").test(o.tpl));
+    let w = t === meta.find ? "This is what the question asks for. " : later ? "We can't get the answer straight away, so first we find the " + lab(t) + ": the next step needs it. " : "We work out the " + lab(t) + " on the way. ";
+    const orig = e && e.lhs && typeof e.rhs === "string" ? symOf(T, e.lhs) + " = " + pretty(swapIds(T, e.rhs, id => symOf(T, id))) : null, now = symOf(T, t) + " = " + pretty(swapIds(T, s.tpl, id => symOf(T, id)));
+    if (e && e.note) w += e.note + " ";
+    if (orig && e.lhs !== t && e.rhs !== s.tpl) w += "The rule " + orig + " links " + [e.lhs].concat(used.filter(x => x !== e.lhs)).concat([t]).filter((x, i, a) => a.indexOf(x) === i).map(lab).join(", ").replace(/, ([^,]*)$/, " and $1") + ". We rearrange it so the " + lab(t) + " is on its own: " + now + ". ";
+    else w += "The rule " + now + " gives the " + lab(t) + " from " + (used.length ? used.map(lab).join(", ").replace(/, ([^,]*)$/, " and $1") : "the numbers we have") + ". ";
+    const parts = used.map(id => { const isV = T.vars.some(x => x.id === id), sym = symOf(T, id); if (!isV) return sym + " = " + fmt((T.consts || {})[id]) + (CONST_WHY[id] ? " (" + CONST_WHY[id] + ")" : "");
+      const val = valStr(T, sol.v, id); const k = all.slice(0, idx).findIndex(o => o.target === id);
+      const from = k >= 0 ? "from step " + (k + 1) : src[id] === "phrase" ? ((Math.abs(sol.v[id]) === 9.81 ? "the pull of gravity, " : "") + (srcTxt[id] ? "because the question says \u201c" + srcTxt[id] + "\u201d" : "from the wording of the question")) : (SRC_WHY[src[id]] || "from the question"); return sym + " = " + val + " (" + from + ")"; });
+    if (parts.length) w += "We know " + parts.join(", ").replace(/, ([^,]*)$/, " and $1") + ". Put those numbers in and work it out.";
+    return w.trim(); }
+  function stepLines(T, sol, meta) { return sol.steps.map((s, idx, all) => { const why = whyStep(T, s, sol, meta, idx, all); if (s.together) return { why, title: "Solve them together", lines: ["The remaining unknowns (" + s.unk.map(id => symOf(T, id)).join(", ") + ") appear in more than one equation, so they're found together:", ...s.unk.map(id => symOf(T, id) + " = " + valStr(T, sol.v, id))] };
       const q = T.vars.find(x => x.id === s.target), lhs = symOf(T, s.target);
-      return { title: "Find " + (q ? q.label.toLowerCase() : lhs), lines: [lhs + " = " + pretty(swapIds(T, s.tpl, id => symOf(T, id))), lhs + " = " + pretty(swapIds(T, s.tpl, id => "(" + (T.vars.find(x => x.id === id) ? fmt(sol.v[id]) : fmt((T.consts || {})[id])) + ")").replace(/\((-?[\d.,]+)\)/g, "$1").replace(/\(-/g, "(−")), lhs + " = " + valStr(T, sol.v, s.target)] }; }); }
+      return { why, title: "Find " + (q ? q.label.toLowerCase() : lhs), lines: [lhs + " = " + pretty(swapIds(T, s.tpl, id => symOf(T, id))), lhs + " = " + pretty(swapIds(T, s.tpl, id => "(" + (T.vars.find(x => x.id === id) ? fmt(sol.v[id]) : fmt((T.consts || {})[id])) + ")").replace(/\((-?[\d.,]+)\)/g, "$1").replace(/\(-/g, "(−")), lhs + " = " + valStr(T, sol.v, s.target)] }; }); }
 
   /* ---------- deciding which variable gets which number ---------- */
   const SV_dimOk = (q, V) => q.dim === V.dim;

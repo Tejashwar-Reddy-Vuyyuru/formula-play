@@ -15,11 +15,11 @@ const EN = (function (SV, ST, CH) {
     over = over || {}; const lt = text.toLowerCase(); let T = pickVariant(T0, text);
     const qAll = SV.quantities(text); if (T0.subj === "math" && qAll.length && qAll.every(q => q.dim === "none" || q.dim === "angle") && T.vars.some(v => v.dim === "length")) { const map = { length: 1, area: 1, volume: 1 }; T = Object.assign({}, T, { unitless: true, vars: T.vars.map(v => map[v.dim] ? Object.assign({}, v, { unit: "", dim: "none", alt: [] }) : v) }); }
     if (T.eqs.some(e => e.cond)) T = Object.assign({}, T, { eqs: T.eqs.filter(e => !e.cond || e.cond.test(lt)) });
-    let vals = {}, src = {};
+    let vals = {}, src = {}, srcTxt = {};
     if (over.vals) { vals = Object.assign({}, over.vals); Object.keys(vals).forEach(k => src[k] = (over.src || {})[k] || "you"); }
     else { const a = SV.assign(T, text); vals = a.vals; Object.keys(vals).forEach(k => src[k] = "read");
       if (T0.pre) T0.pre.call(T0, lt, vals, text); else if (T.pre) T.pre.call(T, lt, vals, text); Object.keys(vals).forEach(k => src[k] = src[k] || "read");
-      (T.phrases || T0.phrases || []).forEach(p => { if (p.re.test(lt)) Object.keys(p.set).forEach(k => src[k] = "phrase"); }); }
+      (T.phrases || T0.phrases || []).forEach(p => { const m = lt.match(p.re); if (m) Object.keys(p.set).forEach(k => { src[k] = "phrase"; srcTxt[k] = m[0].trim(); }); }); }
     const hook = T.post || T0.post; const ctx = {}; if (hook && !over.vals) { hook.call(ctx, vals, lt); Object.keys(vals).forEach(k => { if (!src[k]) src[k] = "assumed"; }); }
     if (ctx._const) T._constNote = ctx._const; else T._constNote = null;
     const find0 = over.find || SV.detectFind(T, text, vals); const matched0 = SV.detectFind.matched;
@@ -38,7 +38,7 @@ const EN = (function (SV, ST, CH) {
     if (!userU.length) { const vu = (userU.volume || userU.area || "").match(/^(cm|mm|km|m)(?=[23²³]|\^)/); if (vu) userU.length = vu[1]; }
     if (userU.length) { const L = userU.length.toLowerCase(); const fam = /^(cm|mm|km)$/.test(L) ? L : /^(inch|inches|in\.?)$/.test(L) ? "in" : /^(ft|foot|feet)$/.test(L) ? "ft" : /^(yd|yard|yards)$/.test(L) ? "yd" : null; if (fam) { if (!userU.area) userU.area = fam + "²"; if (!userU.volume) userU.volume = fam + "³"; if (fam !== L && fam !== "in") userU.length = fam; } }
     const ans = finds.map(id => { const V = T.vars.find(x => x.id === id); const uu = userU[V.dim]; if (uu && V.unit && SV.unitOf(uu) && SV.unitOf(V.unit) && uu.toLowerCase() !== V.unit.toLowerCase() && !["temp"].includes(V.dim) && !(V.dim === "money")) { const cv = SV.conv(sol.v[id], V.unit, uu); return { id, label: V.label, sym: V.sym, value: cv, si: sol.v[id], unit: uu, text: fmtU(cv, uu) + "  (= " + fmtU(sol.v[id], V.unit) + ")" }; } let txt = fmtU(sol.v[id], V.unit); if (V.unit === "s" && !userU.time && Math.abs(sol.v[id]) >= 120) txt += Math.abs(sol.v[id]) >= 7200 ? "  (= " + fmtU(sol.v[id] / 3600, "h") + ")" : "  (= " + fmtU(sol.v[id] / 60, "min") + ")"; (V.also || []).forEach(([u]) => { txt += "  (= " + fmtU(SV.conv(sol.v[id], V.unit, u), u) + ")"; }); return { id, label: V.label, sym: V.sym, value: sol.v[id], unit: V.unit, text: txt }; });
-    const steps = SV.stepLines(T, sol);
+    const steps = SV.stepLines(T, sol, { find, src, srcTxt });
     const conv = []; if (!over.vals) SV.quantities(text).forEach(q => { if (q.unit && q.dim !== "none") { const V = given.find(g => Math.abs(SV.conv(q.v, q.unit, g.unit) - g.value) < 1e-9 * Math.max(1, Math.abs(g.value)) && (q.unit || "").toLowerCase() !== (g.unit || "").toLowerCase()); if (V && Math.abs(V.value - q.v) > 1e-12 * Math.max(1, Math.abs(q.v))) conv.push(q.raw.trim() + " → " + fmtU(V.value, V.unit)); } });
     if (conv.length) steps.unshift({ title: "Convert to standard units", lines: conv });
     if (!over.vals && T0._w) steps.unshift({ title: "The hanging mass pulls with its weight", lines: ["F = m × g = " + fmt(T0._w) + " × 9.81 = " + fmtU(T0._w * 9.81, "N")] });
@@ -456,6 +456,114 @@ const EN = (function (SV, ST, CH) {
     const n = Math.min(idx.length, 8); for (let mask = 1; mask < (1 << n); mask++) { const a = [...base]; for (let j = 0; j < n; j++) if (mask & (1 << j)) a[idx[j]] = subs[a[idx[j]]]; cands.add(a.join("")); }
     let best = tok, bs = -1e9; cands.forEach(c => { let s2 = c.replace(/(?<=[A-Za-z\d])([2-9])0(?=\d|[^\d]|$)/g, "$1O").replace(/(?<=[A-Z][a-z]?)0(?=\d)/g, "O"); [c, s2].forEach(x => { const s = ok(x); if (s > 0) { const sc = s * 10 - (x === tok ? 0 : 1) - [...x].filter((ch, i) => ch !== tok[i]).length; if (sc > bs) { bs = sc; best = x; } } }); });
     return bs > -1e9 ? best : tok; }
+  /* ---------- plain-language "why" for each step of the special solvers ---------- */
+  const WHY = [
+    [/^Simplify each side/, "First tidy up: expand any brackets and collect like terms, so each side is as short as it can be. Nothing changes the balance of the equation here."],
+    [/^Get .* on one side/, "An equation is like a balance: whatever you do to one side, you must do to the other. We move every x term to one side and every plain number to the other, so x is easier to free."],
+    [/^Divide by the number in front of/, "Now x is multiplied by a number. Dividing both sides by that number leaves x on its own, which is the answer."],
+    [/^Check$/, "Put the answer back into the original question. If both sides come out equal (or the totals match), the answer is right."],
+    [/^Write it as ax²/, "Move everything to one side so the equation reads ax² + bx + c = 0. Then we can read off a, b and c and use the quadratic formula."],
+    [/^Discriminant/, "The discriminant b² − 4ac tells you how many answers there are before you solve: positive means two, zero means one, negative means none on the number line."],
+    [/^Quadratic formula/, "The quadratic formula solves any ax² + bx + c = 0. The ± gives the two answers: one adding the square root, one subtracting it."],
+    [/^Complex answers/, "The number under the square root is negative, so there are no ordinary (real) answers. These complex answers are beyond most school courses."],
+    [/^a = 0, so it's not a quadratic/, "With no x² term left, this is just a straight-line equation, so we solve it the simple way."],
+    [/^Line them up/, "Write the two equations one under the other and number them, so we can refer to each one clearly."],
+    [/^Make the .* match, then subtract/, "Multiply each equation so one letter has the same number in front in both. Subtracting one equation from the other then makes that letter disappear, leaving one equation with one unknown."],
+    [/^Put .* back into/, "Now we know one letter. Putting it back into either original equation gives the other letter."],
+    [/^Check in/, "Test both answers in the other equation. If it comes out true, both answers are right."],
+    [/^Turn the percent into a decimal/, "Per cent means out of 100, so divide by 100 to turn the percent into a decimal you can multiply with."],
+    [/^Work out the /, "Find how much the percentage is worth: multiply the original amount by the percent as a decimal."],
+    [/^(Add it|Subtract it)$/, "Add that amount for an increase, or take it away for a decrease, to get the new value."],
+    [/^Find the change/, "Percentage change compares the difference with where you started, so first find the difference: new minus original."],
+    [/^Divide by the ORIGINAL/, "Divide the change by the original amount, not the new one, then × 100. A negative answer means it went down."],
+    [/^Find the multiplier/, "A percent increase or decrease is the same as multiplying by one number. For example, up 20% means × 1.2 and down 20% means × 0.8."],
+    [/^Undo it: divide/, "The original was multiplied by that number to get the new value, so dividing undoes it and takes us back to the original."],
+    [/^Write it as an equation/, "Turn the words into maths: “of” means multiply, and “is” means equals."],
+    [/^Divide by the decimal/, "The whole is unknown and multiplied by the percent, so dividing by that decimal gets the whole on its own."],
+    [/^Part ÷ whole/, "A percentage compares a part with the whole. Dividing part by whole tells you what fraction of the whole you have."],
+    [/^× 100 to make a percent/, "Per cent means out of 100, so multiply the fraction by 100 to say it as a percent."],
+    [/^Percentage yield/, "Percentage yield compares what you actually made with the most you could possibly make. Real reactions lose some product, so it is usually below 100%."],
+    [/^(Add the parts)/, "A ratio splits something into equal-sized parts. Adding the ratio numbers tells you how many parts there are in total."],
+    [/^Find one part/, "Divide the amount by the number of parts to find how much one part is worth."],
+    [/^(Multiply each share|Scale every part)/, "Each share is its number of parts times the value of one part."],
+    [/^Divide every part by the biggest common factor/, "To simplify a ratio, divide every number by the biggest number that goes into all of them, just like simplifying a fraction."],
+    [/^Put them in order/, "Sorting the numbers from smallest to largest makes the median and range easy to find."],
+    [/^Mean/, "The mean is the fair share: add everything up, then share it equally between all the values."],
+    [/^Median/, "The median is the middle value once the numbers are in order. With an even count, it is halfway between the two middle values."],
+    [/^Mode/, "The mode is the value that appears most often."],
+    [/^Range/, "The range shows how spread out the data is: largest minus smallest."],
+    [/^(Count everything|All outcomes)/, "Probability compares the ways you want with all the possible ways, so first count every possible outcome."],
+    [/^(Count what you want|Outcomes you want|Ways to)/, "Now count only the outcomes that match what the question asks for."],
+    [/^(One pick|Probability)$/, "Probability = outcomes you want ÷ all outcomes. It is always between 0 (impossible) and 1 (certain)."],
+    [/^Second pick \(one fewer left\)/, "Without putting it back, there is one fewer item for the second pick, so both counts change. For “this and then that”, multiply the two probabilities."],
+    [/^Second pick \(put back first\)/, "The first item goes back, so the second pick has the same chances as the first. For “this and then that”, multiply the two probabilities."],
+    [/^Gradient/, "The gradient (slope) is how much y goes up for each 1 that x goes along: rise ÷ run between the two points."],
+    [/^y-intercept/, "The line is y = mx + c. We know m and one point on the line, so putting them in gives c, where the line crosses the y-axis."],
+    [/^Midpoint/, "The midpoint is halfway, so average the x values and average the y values."],
+    [/^Distance \(Pythagoras\)/, "The gap across and the gap up make a right-angled triangle, and the distance is its long side, so we use Pythagoras: a² + b² = c²."],
+    [/^Vertical line/, "Both points have the same x, so the line goes straight up. Its slope is undefined and its equation is just x = a number."],
+    [/^Two different points are needed/, "A line needs two different points; with the same point twice, there is nothing to measure."],
+    [/^Add .*\/.*[+−-]/, "You can only add or subtract fractions with the same bottom number (denominator). So rewrite both over a common denominator, then combine the top numbers."],
+    [/^(Add|Subtract) /, "You can only add or subtract fractions with the same bottom number (denominator). So rewrite both over a common denominator, then combine the top numbers."],
+    [/^Multiply /, "To multiply fractions, multiply the tops together and the bottoms together, then simplify."],
+    [/^Divide /, "To divide by a fraction, flip it and multiply (keep, change, flip)."],
+    [/^Series: just add them/, "In series, the current has to go through every resistor one after another, so their resistances simply add up."],
+    [/^Parallel: add the 1\/R/, "In parallel, the current has extra paths to choose from, so the total resistance is less than the smallest one. The rule adds the 1/R values, then flips the result."],
+    [/^Total current/, "Ohm's law says current = voltage ÷ resistance. With the total resistance, this gives the current from the battery."],
+    [/^Current in each branch/, "In parallel, every branch gets the full voltage, so each branch's current is V ÷ its own R. Bigger resistance means less current."],
+    [/^Voltage across each/, "In series, the same current flows through each resistor, so each one's voltage is I × its own R. The voltages add up to the battery's."],
+    [/^Unbalanced/, "Start by writing the equation exactly as given. The numbers of atoms don't match yet."],
+    [/^Count atoms of each element/, "Atoms are never created or destroyed in a reaction, so each element must appear the same number of times on both sides. Counting shows what needs fixing."],
+    [/^Put numbers in front/, "Fix it by putting big numbers (coefficients) in front of whole molecules. Never change the small numbers: that would make it a different substance."],
+    [/^Check: every element matches/, "Recount every element with the new numbers. If each one matches on both sides, the equation is balanced."],
+    [/^Not whole numbers yet/, "Coefficients must be whole numbers, so multiply every one by the same number to clear the fractions."],
+    [/^Note$/, "Some equations can be balanced in more than one way. Any version where every element matches is correct."],
+    [/^Count the atoms/, "The molar mass adds up the mass of every atom in the formula, so first count how many of each element there are. A number after a bracket multiplies everything inside it."],
+    [/^Multiply by each atomic mass/, "Each element has its own atomic mass from the periodic table. Multiply it by how many of those atoms there are."],
+    [/^Add them$/, "Add the masses of all the parts to get the mass of one mole of the substance, in grams per mole."],
+    [/^Molar mass$/, "Work out the mass of one mole of the compound by adding up the atomic masses of all its atoms."],
+    [/^Each element's share/, "Each element's percentage is its mass in the formula ÷ the whole formula's mass × 100."],
+    [/^Balanced equation/, "The balanced equation is the recipe: its numbers tell you how many moles of each substance react together."],
+    [/^Moles of /, "Equations work in moles, not grams. Divide the mass by the molar mass to turn grams into moles."],
+    [/^Which runs out first/, "With two starting amounts, the one that runs out first (the limiting reactant) decides how much product you get. Dividing each one's moles by its number in the equation shows which is smaller."],
+    [/^Use the ratio from the equation/, "The equation's numbers give the mole ratio, for example 2 : 1. Scale the moles you have by that ratio to get the moles of the substance you want."],
+    [/^Back to grams/, "Convert the moles back to grams by multiplying by the molar mass, since grams are what you can weigh."],
+    [/^Gas volume/, "At room temperature and pressure, one mole of any gas takes up about 24 L, so moles × 24 gives the volume."],
+    [/strong acid/, "A strong acid splits up completely in water, so the concentration of H⁺ ions equals the acid's concentration."],
+    [/strong base/, "A strong base splits up completely, so the OH⁻ concentration equals the base's concentration. pOH is −log[OH⁻]."],
+    [/^pH = −log/, "pH is a short way to write how much acid there is: pH = −log[H⁺]. Each step of 1 in pH means 10 times more or less acid."],
+    [/^pH = 14 − pOH/, "In water at 25 °C, pH + pOH always equals 14."],
+    [/^From pH to \[H⁺\]/, "Undo the log: [H⁺] = 10 to the power of −pH."],
+    [/^From \[OH⁻\] to \[H⁺\]/, "In water, [H⁺] × [OH⁻] = 1 × 10⁻¹⁴, so knowing one gives the other."],
+    [/^The rest$/, "The other values follow from the same rules: pH + pOH = 14, and each concentration is 10 to the minus its p-value."],
+    [/^Divide each by its atomic mass/, "Percent or mass amounts tell us how much of each element, but formulas count atoms. Dividing by the atomic mass turns each amount into moles of atoms."],
+    [/^Divide by the smallest/, "Dividing every mole amount by the smallest gives the simplest whole-number ratio of atoms."],
+    [/^Empirical formula/, "The ratio of atoms becomes the formula: this is the simplest ratio, called the empirical formula."],
+    [/^Molecular formula/, "The real molecule can be a multiple of the simplest formula. Dividing the true molar mass by the empirical formula's mass tells you how many times to multiply."],
+    [/^Protons = atomic number/, "The atomic number on the periodic table is the number of protons. That is what makes the element what it is."],
+    [/^Neutrons = mass number − protons/, "The mass number counts protons plus neutrons, so taking away the protons leaves the neutrons."],
+    [/^Electrons = protons − charge/, "A neutral atom has as many electrons as protons. A positive ion has lost electrons, and a negative ion has gained them."],
+    [/^Fill the energy levels/, "Electrons fill the lowest energy levels first, in this order. The small raised numbers count the electrons in each level."],
+    [/^Gametes/, "Each parent passes on only one copy (allele) of each gene in their sex cells, so list every combination each parent can pass on."],
+    [/^Fill the Punnett square/, "The Punnett square pairs every possible egg with every possible sperm, so each box is one equally likely child."],
+    [/^Count genotypes/, "Count how many boxes have each gene combination. That is the chance of each genotype."],
+    [/^Count phenotypes/, "A dominant allele (capital letter) shows whenever it is present. So any box with at least one capital shows the dominant trait."],
+    [/^The affected \(recessive\)/, "Only people with two recessive alleles show the trait, and that group is q². Its square root gives q, the share of recessive alleles."],
+    [/^p \+ q = 1/, "Every allele is either dominant (p) or recessive (q), so the two shares add up to 1."],
+    [/^p² \+ 2pq \+ q² = 1/, "These three groups cover everyone: p² have two dominant alleles, 2pq are carriers and q² have two recessive alleles."],
+    [/^(Supplementary angles|Complementary angles|Angles in a triangle)/, "This is a fixed angle fact, so we know what the angles must add up to."],
+    [/^Add the two you know/, "Add the angles you know to see how much of the 180° they already use."],
+    [/^(Subtract|Take that away from 180°)$/, "Whatever is left over from the total is the missing angle."],
+    [/^Convert to standard units/, "Change every value into standard units (metres, kilograms, seconds) so the formula gives a correct answer."],
+    [/^Assumption/, "The question didn't give this value, so we use the usual standard one. Change it with Change numbers if your question means something different."],
+    [/^What stays the same/, "Find the quantity that doesn't change. Setting its before and after values equal gives the equation to solve."],
+    [/^The hanging mass pulls with its weight/, "The hanging mass is pulled down by gravity, and its weight (m × g) is the force that drives the system."],
+    [/^Add up the contact areas/, "Pressure spreads the force over all the surfaces touching, so add up every contact area."],
+    [/^Multiply$/, "\u201cA percent of an amount\u201d means multiply: the amount × the percent as a decimal."],
+    [/^Divide$/, "Divide to undo the multiplication and get the missing number on its own."],
+    [/^Work it out$/, "Put the numbers into the rule and calculate."]
+  ];
+  function addWhy(r) { if (!r || !r.steps) return r; r.steps.forEach(s => { if (s.why) return; const hit = WHY.find(([re]) => re.test(s.title || "")); if (hit) s.why = hit[1]; }); return r; }
   /* ---------- find the actual question(s) in text read from a photo or screenshot ---------- */
   const UI_JUNK = /\b(Formula Play|New question|Edit question|Change numbers|Wrong type\??|Copy Share|Solve it|Solveit|I read:?|Hints first|Try one|Snap a photo|Pick a photo|Browse problem types|Type a message)\b/gi;
   const CUE = /\?|\b(find|calculate|what|how|determine|solve|work out|estimate|evaluate|simplify|compute|show that|which|predict|express|convert|balance|write)\b/i;
@@ -503,7 +611,7 @@ const EN = (function (SV, ST, CH) {
     if (T.detect) { try { s += T.detect(text); } catch (e) { } } return s; }
   function detect(text) { const r = ALL().map(T => ({ T, s: score(T, text) })).sort((a, b) => b.s - a.s); return r; }
   const failed = (r, strict) => !r || !r.ok || (strict && r.guessed) || (strict && r.multiStage) || !r.answers || !r.answers.length || r.answers.every(a => a.value != null && typeof a.value === "number" && !isFinite(a.value) && !/No real/.test(a.text));
-  const run1 = (T, text, over) => { try { return T.generic || T.family ? runGeneric(T, text, over) : T.solve(text, over); } catch (e) { console.warn(e); return { ok: false }; } };
+  const run1 = (T, text, over) => { try { return addWhy(T.generic || T.family ? runGeneric(T, text, over) : T.solve(text, over)); } catch (e) { console.warn(e); return { ok: false }; } };
   function solve(text, typeId, over) { text = norm(text).trim(); const ranked = detect(text); let T = typeId ? ALL().find(x => x.id === typeId) : (ranked[0].s >= 6 ? ranked[0].T : null);
     if (!T) return breakdown(text, ranked); let r = run1(T, text, over);
     if (failed(r, !typeId) && !typeId) for (const alt of ranked.slice(1, 4)) { if (alt.s < 10 || alt.s < ranked[0].s * 0.6) break; const r2 = run1(alt.T, text, over); if (!failed(r2, true)) { r = r2; T = alt.T; break; } }
