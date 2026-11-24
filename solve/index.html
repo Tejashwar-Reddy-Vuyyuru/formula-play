@@ -148,6 +148,7 @@ body.result main{padding-bottom:80px}
 .morech{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12.5px}.morech .chip{font-size:12.5px;max-width:100%;text-align:left}
 .why{margin:8px 0 10px;padding:9px 11px;border-radius:12px;background:rgba(99,102,241,.09);border-left:3px solid rgba(99,102,241,.7);font-size:14px;line-height:1.5}
 .why b{color:var(--acc,#6366f1)}
+.phtip{margin:6px 2px 10px;font-size:12.5px;line-height:1.4;color:var(--dim,#64748b)}
 </style>
 </head>
 <body>
@@ -162,6 +163,7 @@ body.result main{padding-bottom:80px}
       <button type="button" id="b-pic"><span aria-hidden="true">🖼️</span>Pick a photo</button>
       <button type="button" id="b-paste"><span aria-hidden="true">📋</span>Paste</button>
     </div>
+    <p class="phtip">📷 Photos work best with <b>printed</b> questions: flat, well lit, one question in view. Handwriting isn't supported yet.</p>
     <input type="file" id="f-cam" accept="image/*" capture="environment" class="hidden">
     <input type="file" id="f-pic" accept="image/*" class="hidden">
     <label for="q" class="hidden">Problem</label>
@@ -184,11 +186,11 @@ body.result main{padding-bottom:80px}
 
   <p class="foot">Everything is worked out on your phone. Photos, pasted text and typed questions are never uploaded or stored.<br>Reading text from a photo uses a free text-reading tool (Tesseract) that your phone downloads from jsDelivr the first time.</p>
 </main>
-<script src="core.js?v=64"></script>
-<script src="types.js?v=64"></script>
-<script src="chem.js?v=64"></script>
-<script src="engine.js?v=64"></script>
-<script src="draw.js?v=64"></script>
-<script src="app.js?v=64"></script>
+<script src="core.js?v=65"></script>
+<script src="types.js?v=65"></script>
+<script src="chem.js?v=65"></script>
+<script src="engine.js?v=65"></script>
+<script src="draw.js?v=65"></script>
+<script src="app.js?v=65"></script>
 </body>
 </html>
