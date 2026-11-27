@@ -1,7 +1,7 @@
 // Formula Play offline support.
 // The app is one page. This keeps a copy of it and its icons so it opens without a connection,
 // and fetches a fresh copy whenever the phone is online.
-const VERSION = 'formula-play-v67';
+const VERSION = 'formula-play-v68';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
