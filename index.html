@@ -10,8 +10,6 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Formula Play</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Layout: black-and-white first, lit from above. Every drawing surface is a dark instrument screen with glowing traces; cards float over a softly lit page; views cross-fade and their parts rise in turn. */
 :root{
@@ -642,6 +640,26 @@ body[data-view="arcade"] #webnote{display:none}
 .plab-solve{background:linear-gradient(135deg,#123a2c,#1b2347);margin-top:10px}
 @media (prefers-reduced-motion:reduce){.plab::after{animation:none}}
 
+
+/* v66. Challenge screens on phones: the graph and its buttons fit the screen; a side rail scrolls the page without drawing */
+@media (max-width:640px){
+#v-daily{gap:10px}
+#qmodes{display:grid!important;flex-wrap:nowrap;grid-template-columns:repeat(4,1fr);gap:6px;overflow:visible;padding:0;-webkit-mask:none!important;mask:none!important}
+#qmodes button{min-height:40px;padding:4px;font-size:12.5px;line-height:1.15;white-space:normal;text-align:center}
+#v-daily .qtop{padding:11px 14px}
+#v-daily .qtop h3{margin:0}
+#v-daily .qtop .eq.big{margin:4px 0 2px}
+#v-daily .qtop #qinfo{margin:0;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+#v-daily .qtop.open #qinfo{display:block}
+#v-daily .qscreen{width:min(100%,var(--qfit,calc(100dvh - 384px)));min-width:200px;align-self:center}
+#v-daily .qbar.empty{display:none}
+#v-daily .qbar.flow{position:static}
+#v-daily .qbar{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:6;margin:0;padding:7px;border-radius:18px;background:color-mix(in srgb,var(--card) 92%,transparent);box-shadow:0 6px 22px -10px rgba(15,23,42,.45),0 0 0 1px var(--line);flex-wrap:nowrap}
+#v-daily .qbar button{flex:1 1 0;min-width:0;min-height:42px;padding:6px 8px;font-size:14px;white-space:nowrap}
+.screen.rail{display:grid;grid-template-columns:minmax(0,1fr) 24px}
+.screen.rail::before{content:"\25B4\A\22EE\A\22EE\A\25BE";white-space:pre;grid-column:2;grid-row:1;display:grid;place-items:center;text-align:center;font-size:13px;line-height:1.5;color:rgba(226,232,240,.55);background:linear-gradient(180deg,rgba(148,163,184,.10),rgba(148,163,184,.22),rgba(148,163,184,.10));border-left:1px solid rgba(255,255,255,.07);touch-action:pan-y}
+.screen.rail>canvas{grid-column:1;grid-row:1}
+}
 </style>
 </head>
 <body data-view="home">
@@ -4465,7 +4483,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   m.appendChild(make('sndbox','Applies to every game, tune and effect. Low is the starting level.'));
   const sv=$('v-sound');if(sv){const b2=make('sndbox2','For everything this screen plays: tunes, chords and samples.');sv.insertBefore(b2,sv.children[1]||null);}
   paint();
-  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 65';m.appendChild(p);})();
+  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 66';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
@@ -4514,6 +4532,33 @@ route();
 window.__fp={get mic2(){return mic;},get LAB(){return LAB;},labState,labBuild,labModel,LABX,encLab,ellK,labCSV,setSub,get saved(){return SAVED;},get prefs(){return PREFS;},getLevel,scoreName,get qmode(){return qmode;},get SP(){return SP;},duelCode,findNotes,tuneAudio,chordName,voiceSample,get T(){return TUNE;},get V(){return V;},SAMPLE_TUNE,get morph(){return morphOn?morphOn.m:null;},get morphA(){return !!morphA;},lineSound,sampleD,makeQ,scoreQ,todayKey,get Q(){return Q;},get qres(){return qstate.res;},hosted,get D(){return D;},get S(){return SND;},get view(){return view;},openCode,compile,analyseSound,sample,synth,simpleShape,resample,fourier,fErr,typeCode,get mic(){return !!mic;}};
 })();
 
+
+// ---- v66: challenge screens fit a phone; a side rail on the drawing grids scrolls the page
+(function(){try{
+  const q=document.getElementById('qpad'),kind=document.getElementById('qkind'),hint=document.getElementById('qhint'),info=document.getElementById('qinfo');
+  if(q&&q.parentNode)q.parentNode.classList.add('qscreen','rail');
+  if(kind){const c=kind.closest('.card');if(c){c.classList.add('qtop');if(info)info.addEventListener('click',()=>c.classList.toggle('open'));}}
+  if(hint&&hint.parentNode)hint.parentNode.classList.add('qbar');
+  const pad=document.getElementById('pad');if(pad&&pad.parentNode&&pad.parentNode.classList.contains('screen'))pad.parentNode.classList.add('rail');
+  // size the challenge grid so it and its buttons sit above the bottom bar, whatever the mode shows above it
+  const view=document.getElementById('v-daily'),scr=q&&q.parentNode,bar=hint&&hint.parentNode,nameRow=document.getElementById('qnamerow');
+  let raf=0;
+  const fit=()=>{raf=0;if(!view||!scr||!bar||view.hidden)return;
+    if(!matchMedia('(max-width:640px)').matches){scr.style.removeProperty('--qfit');bar.classList.remove('empty','flow');return;}
+    const shown=[...bar.querySelectorAll('button')].some(b=>!b.hidden&&b.offsetParent!==null||(!b.hidden&&bar.classList.contains('empty')));
+    bar.classList.toggle('empty',!shown);
+    const naming=!!(nameRow&&!nameRow.hidden);bar.classList.toggle('flow',naming);
+    const nav=document.querySelector('nav'),navTop=nav?nav.getBoundingClientRect().top:innerHeight;
+    const top=scr.getBoundingClientRect().top+scrollY;      // where the grid starts when the page is at the top
+    const below=(shown&&!naming?bar.offsetHeight+10:0)+(naming?Math.min(150,nameRow.offsetHeight)+12:0);
+    const room=Math.floor(navTop-top-below-12);
+    scr.style.setProperty('--qfit',Math.max(200,room+24)+'px');};
+  const ask=()=>{if(!raf)raf=requestAnimationFrame(fit);};
+  if(view&&scr&&bar){addEventListener('resize',ask);addEventListener('hashchange',()=>setTimeout(ask,60));
+    try{new MutationObserver(ask).observe(view,{attributes:true,subtree:true,attributeFilter:['hidden']});}catch(e){}
+    try{const c=kind&&kind.closest('.card');if(c&&window.ResizeObserver)new ResizeObserver(ask).observe(c);}catch(e){}
+    setTimeout(ask,300);}
+}catch(e){}})();
 </script>
 </body>
 </html>
