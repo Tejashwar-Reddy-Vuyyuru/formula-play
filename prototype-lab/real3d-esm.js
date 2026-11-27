@@ -2001,7 +2001,7 @@ B.custom = (R, st) => {
   ["load", "source", "converter", "losses", "engine", "motor", "battery", "fans", "levels", "wing", "hull", "envelope", "inside", "outlet", "inlet", "chimney", "pressure", "speed", "wheels", "goal", "stress", "cable", "airfoil", "basket", "tank", "sail", "prop", "wake", "burner", "hotair", "downwash"].forEach(n => { if (!mk[n]) mk[n] = mk.body; });
   Object.assign(mk, { thrust: aU.userData.tip, buoyancy: aU.userData.tip, lift: aU.userData.tip, weight: aD.userData.tip, gravity: aD.userData.tip, drag: aD.userData.tip });
   let lr = R; const env = () => Object.assign({ margin: lr.margin, ok: lr.ok ? 1 : 0, t: lr.t }, lr.env);
-  return { root, anchors: mk, follow: flies || dives ? obj : null, ground: drives ? "road" : "grass", water: floats, moving: drives,
+  return { root, anchors: mk, follow: flies || dives ? obj : null, ground: drives ? "road" : floats ? "water" : "grass", water: floats, moving: drives,
     labels: [{ obj: aU.userData.tip, text: () => "Have: " + lr.H.haveL, col: "#22d3ee" }, { obj: aD.userData.tip, text: () => "Need: " + lr.H.needL, col: "#fb7185" }],
     cam: { pos: new T.Vector3(L * 1.3 + h * .4 + 2, h * .8 + 1, L * 1.6 + h * .6 + 3), target: new T.Vector3(0, h * .45, 0) },
     update(R, dt, t) { lr = R; const e = env();
