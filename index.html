@@ -660,6 +660,27 @@ body[data-view="arcade"] #webnote{display:none}
 .screen.rail::before{content:"\25B4\A\22EE\A\22EE\A\25BE";white-space:pre;grid-column:2;grid-row:1;display:grid;place-items:center;text-align:center;font-size:13px;line-height:1.5;color:rgba(226,232,240,.55);background:linear-gradient(180deg,rgba(148,163,184,.10),rgba(148,163,184,.22),rgba(148,163,184,.10));border-left:1px solid rgba(255,255,255,.07);touch-action:pan-y}
 .screen.rail>canvas{grid-column:1;grid-row:1}
 }
+
+/* v67. Inventors on phones: the picture and its buttons fit the screen; swipe the picture for the next machine; a small swipe guide */
+@media (max-width:640px){
+.invtabs:not(.open) .subtabs{display:none}
+.invtabs .invbar{margin-bottom:0}
+#linv .linv-head{padding:12px 14px}
+#linv .linv-head h2{margin:2px 0 4px}
+#linv-story{margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+#linv .linv-head.open #linv-story{display:block}
+#linv .invscreen{width:min(100%,var(--ifit,100%));margin-inline:auto}
+}
+.invscreen.go-l>canvas{animation:invInL .26s ease-out}
+.invscreen.go-r>canvas{animation:invInR .26s ease-out}
+@keyframes invInL{from{transform:translateX(34px);opacity:.25}to{transform:none;opacity:1}}
+@keyframes invInR{from{transform:translateX(-34px);opacity:.25}to{transform:none;opacity:1}}
+.invswipe{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;color:#f8fafc;background:rgba(15,23,42,.62);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .5s}
+.invswipe.show{opacity:1}
+.invswipe i{font-style:normal;display:inline-block;animation:invNudge 1.2s ease-in-out infinite}
+.invswipe i:first-child{animation-direction:reverse}
+@keyframes invNudge{0%,100%{transform:translateX(-3px)}50%{transform:translateX(3px)}}
+:root.nomotion .invswipe i,:root.nomotion .invscreen>canvas{animation:none!important}
 </style>
 </head>
 <body data-view="home">
@@ -4483,7 +4504,7 @@ window.__inv={INV,INVS,invOpen,invPick,invMode};
   m.appendChild(make('sndbox','Applies to every game, tune and effect. Low is the starting level.'));
   const sv=$('v-sound');if(sv){const b2=make('sndbox2','For everything this screen plays: tunes, chords and samples.');sv.insertBefore(b2,sv.children[1]||null);}
   paint();
-  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 66';m.appendChild(p);})();
+  const p=document.createElement('p');p.className='small';p.id='appver';p.style.textAlign='center';p.textContent='Formula Play · version 67';m.appendChild(p);})();
 
 // ---------- start
 setMode('y');
@@ -4558,6 +4579,45 @@ window.__fp={get mic2(){return mic;},get LAB(){return LAB;},labState,labBuild,la
     try{new MutationObserver(ask).observe(view,{attributes:true,subtree:true,attributeFilter:['hidden']});}catch(e){}
     try{const c=kind&&kind.closest('.card');if(c&&window.ResizeObserver)new ResizeObserver(ask).observe(c);}catch(e){}
     setTimeout(ask,300);}
+}catch(e){}})();
+
+// ---- v67: Inventors on a phone. The picture and its buttons fit the screen, a sideways swipe on the picture changes machine, and a small guide says so
+(function(){try{
+  const cv=document.getElementById('linv-cv'),life=document.getElementById('linv-life'),story=document.getElementById('linv-story'),nx=document.getElementById('linv-next'),pv=document.getElementById('linv-prev');
+  if(!cv||!life||!nx||!pv)return;const scr=cv.parentNode,row=life.parentNode,head=story&&story.closest('.linv-head');
+  scr.classList.add('invscreen');
+  if(story&&head)story.addEventListener('click',()=>{head.classList.toggle('open');ask();});
+  // 1. size the picture so the buttons under it stay above the bottom bar
+  let raf=0;
+  const fit=()=>{raf=0;if(!cv.offsetParent)return;
+    if(!matchMedia('(max-width:640px)').matches){scr.style.removeProperty('--ifit');return;}
+    const nav=document.querySelector('nav'),navTop=nav?nav.getBoundingClientRect().top:innerHeight;
+    const top=scr.getBoundingClientRect().top+scrollY,room=navTop-top-row.offsetHeight-30;
+    const w=Math.floor(room*cv.width/cv.height);
+    scr.style.setProperty('--ifit',Math.max(236,w)+'px');};
+  const ask=()=>{if(!raf)raf=requestAnimationFrame(fit);};
+  addEventListener('resize',ask);addEventListener('hashchange',()=>setTimeout(ask,80));
+  try{if(window.ResizeObserver&&head)new ResizeObserver(ask).observe(head);}catch(e){}
+  try{new MutationObserver(ask).observe(document.body,{attributes:true,attributeFilter:['class','data-view']});}catch(e){}
+  // 2. swipe sideways on the picture: next / previous machine (up and down still scrolls the page)
+  let x0=0,y0=0,t0=0,on=false,swipes=0;
+  const slide=dir=>{scr.classList.remove('go-l','go-r');void scr.offsetWidth;scr.classList.add(dir>0?'go-l':'go-r');setTimeout(()=>scr.classList.remove('go-l','go-r'),320);};
+  cv.addEventListener('pointerdown',e=>{on=true;x0=e.clientX;y0=e.clientY;t0=performance.now();},{passive:true});
+  cv.addEventListener('pointercancel',()=>{on=false;},{passive:true});
+  cv.addEventListener('pointerup',e=>{if(!on)return;on=false;const dx=e.clientX-x0,dy=e.clientY-y0;
+    if(Math.abs(dx)<46||Math.abs(dx)<Math.abs(dy)*1.6||performance.now()-t0>900)return;
+    (dx<0?nx:pv).click();slide(dx<0?1:-1);swipes++;hide();try{localStorage.setItem('fp_invswipe',String(9));}catch(e){}ask();},{passive:true});
+  [nx,pv].forEach((b,i)=>b.addEventListener('click',e=>{if(e.isTrusted)slide(i?-1:1);setTimeout(ask,40);}));
+  // 3. a small guide on the picture, no backdrop, that fades away by itself
+  const tip=document.createElement('div');tip.className='invswipe';tip.setAttribute('aria-hidden','true');tip.innerHTML='<i>‹</i><span>Swipe for the next machine</span><i>›</i>';scr.appendChild(tip);
+  let tipT=0;const hide=()=>{tip.classList.remove('show');clearTimeout(tipT);};
+  const seen=()=>{try{return +(localStorage.getItem('fp_invswipe')||0);}catch(e){return 0;}};
+  let was=false;
+  setInterval(()=>{const vis=!!cv.offsetParent;if(vis&&!was){ask();
+      if(seen()<6&&matchMedia('(pointer:coarse)').matches){try{localStorage.setItem('fp_invswipe',String(seen()+1));}catch(e){}
+        setTimeout(()=>{tip.classList.add('show');tipT=setTimeout(hide,4200);},700);}}
+    if(!vis&&was)hide();was=vis;},700);
+  setTimeout(ask,400);
 }catch(e){}})();
 </script>
 </body>
